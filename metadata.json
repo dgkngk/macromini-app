@@ -1,0 +1,5 @@
+{
+  "name": "MacroMini",
+  "description": "A smart calorie and macro tracking application allowing users to manage multiple diet profiles. Uses AI to automatically analyze meal descriptions and fill in nutritional data.",
+  "requestFramePermissions": []
+}
