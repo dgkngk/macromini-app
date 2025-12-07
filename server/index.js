@@ -1,20 +1,14 @@
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import 'dotenv/config';
 import { analyzeMeal, generateRecipe } from './gemini.js';
 import { db, auth } from './firebase.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../dist')));
 
 // --- Middleware: Verify Firebase Auth Token ---
 const verifyToken = async (req, res, next) => {
@@ -164,11 +158,6 @@ app.post('/api/data/settings/activePlan', verifyToken, async (req, res) => {
     await db.collection('users').doc(req.user.uid).collection('settings').doc('general').set({ activePlanId: planId }, { merge: true });
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// --- Catch-all ---
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
 app.listen(PORT, () => {
