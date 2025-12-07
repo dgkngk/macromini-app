@@ -1,16 +1,16 @@
 # Stage 1: Build the frontend
-FROM node:20-alpine AS builder
+FROM node:lts-alpine AS builder
 WORKDIR /app
 
 # A .dockerignore file is recommended to exclude node_modules and other unnecessary files
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY . .
 RUN npm run build
 
 # Stage 2: Production environment
-FROM node:20-alpine
+FROM node:lts-alpine
 WORKDIR /app
 
 # Copy server package files and install production dependencies
