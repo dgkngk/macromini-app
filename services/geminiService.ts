@@ -1,13 +1,39 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AiAnalysisResponse, AiRecipeResponse, DietPlan, Macros, Language } from "../types";
 
+// Determine if we should use Backend API or Client-Side Key
+// Fix: Property 'env' does not exist on type 'ImportMeta'
+const USE_BACKEND = (import.meta as any).env?.PROD; 
+
+// Client-side fallback setup
 const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+let ai: GoogleGenAI | null = null;
+if (!USE_BACKEND && apiKey) {
+  ai = new GoogleGenAI({ apiKey });
+}
 
 export const analyzeMeal = async (description: string): Promise<AiAnalysisResponse> => {
-  if (!apiKey) {
-    console.error("API Key is missing!");
-    throw new Error("API Key is missing. Please set the API_KEY environment variable.");
+  
+  // 1. Production Mode: Use Backend
+  if (USE_BACKEND) {
+    try {
+      const res = await fetch('/api/ai/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description })
+      });
+      if (!res.ok) throw new Error('Backend analysis failed');
+      return await res.json();
+    } catch (e) {
+      console.error("Backend error, falling back to client (if key exists)", e);
+      // Fallthrough to client logic only if backend fails and we have a key (unlikely in prod but good for robust dev)
+    }
+  }
+
+  // 2. Dev/Fallback Mode: Use Client-Side Key
+  if (!ai) {
+    if (!apiKey) throw new Error("API Key is missing (Client Side).");
+    ai = new GoogleGenAI({ apiKey });
   }
 
   try {
@@ -59,8 +85,26 @@ export const generateAiRecipe = async (
   lang: Language,
   userPrompt?: string
 ): Promise<AiRecipeResponse> => {
-  if (!apiKey) {
-    throw new Error("API Key is missing.");
+  
+  // 1. Production Mode: Use Backend
+  if (USE_BACKEND) {
+    try {
+      const res = await fetch('/api/ai/recipe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, remainingMacros, targetCalories, lang, userPrompt })
+      });
+      if (!res.ok) throw new Error('Backend recipe generation failed');
+      return await res.json();
+    } catch (e) {
+      console.error("Backend error", e);
+    }
+  }
+
+  // 2. Dev/Fallback Mode
+  if (!ai) {
+    if (!apiKey) throw new Error("API Key is missing (Client Side).");
+    ai = new GoogleGenAI({ apiKey });
   }
 
   const langMap: Record<Language, string> = {

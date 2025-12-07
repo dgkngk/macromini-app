@@ -12,12 +12,40 @@ import {
   User as FirebaseUser
 } from 'firebase/auth';
 
-// Simulate network delay for realistic async behavior for data operations
+// Fix: Property 'env' does not exist on type 'ImportMeta'
+const IS_PROD = (import.meta as any).env?.PROD;
+
+// Helper: Get Auth Token
+const getAuthToken = async () => {
+  const user = auth.currentUser;
+  if (!user) return null;
+  return await user.getIdToken();
+};
+
+// Helper: Fetch with Auth
+const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
+  const token = await getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+    ...options.headers,
+  };
+
+  const response = await fetch(endpoint, { ...options, headers });
+  if (!response.ok) {
+    throw new Error(`API Error: ${response.statusText}`);
+  }
+  return response.json();
+};
+
+
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 const getUserKey = (userId: string, key: string) => `user_${userId}_${key}`;
+const GUEST_SESSION_KEY = 'macromini_guest_session';
+const isGuest = (userId: string) => userId.startsWith('guest_');
 
-// Helper to transform Firebase user to our App user type
 const mapFirebaseUser = (fbUser: FirebaseUser): User => ({
   id: fbUser.uid,
   email: fbUser.email || '',
@@ -27,54 +55,75 @@ const mapFirebaseUser = (fbUser: FirebaseUser): User => ({
 
 export const api = {
   auth: {
-    // Listen for auth state changes
     onAuthStateChanged: (callback: (user: User | null) => void) => {
+      const guestSession = localStorage.getItem(GUEST_SESSION_KEY);
+      if (guestSession) {
+        callback(JSON.parse(guestSession));
+      }
+
       return onAuthStateChanged(auth, (fbUser) => {
         if (fbUser) {
+          localStorage.removeItem(GUEST_SESSION_KEY);
           callback(mapFirebaseUser(fbUser));
         } else {
-          callback(null);
+          const currentGuest = localStorage.getItem(GUEST_SESSION_KEY);
+          if (currentGuest) {
+            callback(JSON.parse(currentGuest));
+          } else {
+            callback(null);
+          }
         }
       });
     },
 
     login: async (email: string, password: string): Promise<User> => {
       const result = await signInWithEmailAndPassword(auth, email, password);
+      localStorage.removeItem(GUEST_SESSION_KEY);
       return mapFirebaseUser(result.user);
     },
     
     register: async (email: string, password: string, name: string): Promise<User> => {
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      // Update display name immediately after registration
       await updateProfile(result.user, { displayName: name });
-      
-      // Force token refresh to ensure display name is available or manually map it
-      return {
-        ...mapFirebaseUser(result.user),
-        name: name // Explicitly set name since updateProfile might not reflect instantly in the result object
-      };
+      localStorage.removeItem(GUEST_SESSION_KEY);
+      return { ...mapFirebaseUser(result.user), name };
     },
 
     loginWithGoogle: async (): Promise<User> => {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
+      localStorage.removeItem(GUEST_SESSION_KEY);
       return mapFirebaseUser(result.user);
     },
 
     loginWithApple: async (): Promise<User> => {
-       // Note: Apple Auth requires a paid Apple Developer account and specific domain verification in Firebase Console.
-       // For this phase, we'll throw a placeholder error if not configured, or you can implement OAuthProvider('apple.com')
        throw new Error("Apple Sign-In requires domain verification. Please use Google or Email for Phase 2 testing.");
+    },
+
+    loginAsGuest: async (): Promise<User> => {
+      await delay(500);
+      const guestUser: User = {
+        id: 'guest_user_v1',
+        email: '',
+        name: 'Guest Chef',
+        avatar: 'https://ui-avatars.com/api/?name=Guest&background=random&color=fff&background=6366f1'
+      };
+      localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(guestUser));
+      return guestUser;
     },
 
     logout: async (): Promise<void> => {
       await signOut(auth);
-      localStorage.removeItem(BASE_STORAGE_KEYS.CURRENT_USER);
+      localStorage.removeItem(GUEST_SESSION_KEY);
     }
   },
 
   plans: {
     list: async (userId: string): Promise<DietPlan[]> => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth('/api/data/plans');
+      }
+      // LocalStorage Fallback
       await delay(300);
       const key = getUserKey(userId, BASE_STORAGE_KEYS.PLANS);
       const data = localStorage.getItem(key);
@@ -82,24 +131,32 @@ export const api = {
     },
 
     save: async (userId: string, plan: DietPlan): Promise<DietPlan> => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth('/api/data/plans', {
+          method: 'POST',
+          body: JSON.stringify(plan)
+        });
+      }
+      // LocalStorage Fallback
       await delay(200);
       const key = getUserKey(userId, BASE_STORAGE_KEYS.PLANS);
       const current = JSON.parse(localStorage.getItem(key) || '[]');
-      
       const index = current.findIndex((p: DietPlan) => p.id === plan.id);
       let updated;
-      
       if (index >= 0) {
         updated = current.map((p: DietPlan) => p.id === plan.id ? plan : p);
       } else {
         updated = [...current, plan];
       }
-      
       localStorage.setItem(key, JSON.stringify(updated));
       return plan;
     },
 
     delete: async (userId: string, planId: string): Promise<void> => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth(`/api/data/plans/${planId}`, { method: 'DELETE' });
+      }
+      // LocalStorage Fallback
       await delay(200);
       const key = getUserKey(userId, BASE_STORAGE_KEYS.PLANS);
       const current = JSON.parse(localStorage.getItem(key) || '[]');
@@ -110,6 +167,9 @@ export const api = {
 
   meals: {
     list: async (userId: string): Promise<MealEntry[]> => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth('/api/data/meals');
+      }
       await delay(300);
       const key = getUserKey(userId, BASE_STORAGE_KEYS.ENTRIES);
       const data = localStorage.getItem(key);
@@ -117,6 +177,12 @@ export const api = {
     },
 
     add: async (userId: string, entry: MealEntry): Promise<MealEntry> => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth('/api/data/meals', {
+          method: 'POST',
+          body: JSON.stringify(entry)
+        });
+      }
       await delay(200);
       const key = getUserKey(userId, BASE_STORAGE_KEYS.ENTRIES);
       const current = JSON.parse(localStorage.getItem(key) || '[]');
@@ -126,6 +192,9 @@ export const api = {
     },
 
     delete: async (userId: string, entryId: string): Promise<void> => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth(`/api/data/meals/${entryId}`, { method: 'DELETE' });
+      }
       await delay(200);
       const key = getUserKey(userId, BASE_STORAGE_KEYS.ENTRIES);
       const current = JSON.parse(localStorage.getItem(key) || '[]');
@@ -136,6 +205,9 @@ export const api = {
 
   recipes: {
     list: async (userId: string): Promise<SavedRecipe[]> => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth('/api/data/recipes');
+      }
       await delay(300);
       const key = getUserKey(userId, BASE_STORAGE_KEYS.RECIPES);
       const data = localStorage.getItem(key);
@@ -143,6 +215,12 @@ export const api = {
     },
 
     save: async (userId: string, recipe: SavedRecipe): Promise<SavedRecipe> => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth('/api/data/recipes', {
+          method: 'POST',
+          body: JSON.stringify(recipe)
+        });
+      }
       await delay(200);
       const key = getUserKey(userId, BASE_STORAGE_KEYS.RECIPES);
       const current = JSON.parse(localStorage.getItem(key) || '[]');
@@ -152,6 +230,9 @@ export const api = {
     },
 
     delete: async (userId: string, recipeId: string): Promise<void> => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth(`/api/data/recipes/${recipeId}`, { method: 'DELETE' });
+      }
       await delay(200);
       const key = getUserKey(userId, BASE_STORAGE_KEYS.RECIPES);
       const current = JSON.parse(localStorage.getItem(key) || '[]');
@@ -162,6 +243,9 @@ export const api = {
 
   shopping: {
     list: async (userId: string): Promise<ShoppingItem[]> => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth('/api/data/shopping');
+      }
       await delay(300);
       const key = getUserKey(userId, BASE_STORAGE_KEYS.SHOPPING);
       const data = localStorage.getItem(key);
@@ -169,6 +253,12 @@ export const api = {
     },
 
     saveAll: async (userId: string, items: ShoppingItem[]): Promise<ShoppingItem[]> => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth('/api/data/shopping', {
+          method: 'POST',
+          body: JSON.stringify(items)
+        });
+      }
       await delay(200);
       const key = getUserKey(userId, BASE_STORAGE_KEYS.SHOPPING);
       localStorage.setItem(key, JSON.stringify(items));
@@ -178,12 +268,22 @@ export const api = {
   
   settings: {
     getActivePlan: async (userId: string): Promise<string | null> => {
-       const key = getUserKey(userId, BASE_STORAGE_KEYS.ACTIVE_PLAN);
-       return localStorage.getItem(key);
+      if (IS_PROD && !isGuest(userId)) {
+        const res = await fetchWithAuth('/api/data/settings/activePlan');
+        return res.activePlanId;
+      }
+      const key = getUserKey(userId, BASE_STORAGE_KEYS.ACTIVE_PLAN);
+      return localStorage.getItem(key);
     },
     saveActivePlan: async (userId: string, planId: string): Promise<void> => {
-       const key = getUserKey(userId, BASE_STORAGE_KEYS.ACTIVE_PLAN);
-       localStorage.setItem(key, planId);
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth('/api/data/settings/activePlan', {
+          method: 'POST',
+          body: JSON.stringify({ planId })
+        });
+      }
+      const key = getUserKey(userId, BASE_STORAGE_KEYS.ACTIVE_PLAN);
+      localStorage.setItem(key, planId);
     }
   }
 };
