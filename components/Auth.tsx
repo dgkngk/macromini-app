@@ -29,6 +29,17 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, lang, setLang }) => {
   const [loading, setLoading] = useState(false);
 
   const t = TRANSLATIONS[lang];
+  const flagMapping: { [key in Language]: string } = {
+    en: "🇺🇸",
+    tr: "🇹🇷",
+    de: "🇩🇪",
+    fr: "🇫🇷",
+    nl: "🇳🇱",
+    es: "🇪🇸",
+    pt: "🇵🇹",
+    ru: "🇷🇺",
+    zh: "🇨🇳",
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,19 +115,19 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, lang, setLang }) => {
           </button>
 
           {/* Dropdown Content */}
-          <div className="absolute right-0 top-[10px] w-32 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden hidden group-hover:block focus-within:block">
+          <div className="absolute right-0 top-[10px] w-16 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden hidden group-hover:block focus-within:block">
             {Object.keys(TRANSLATIONS).map((l) => (
               <button
                 key={l}
                 onClick={() => setLang(l as Language)}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${
+                className={`w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${
                   lang === l
                     ? "text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-900/20"
                     : "text-slate-600 dark:text-slate-300"
                 }`}
               >
-                {/* You might want a mapping for 'en' -> 'English', etc. */}
-                {l.toUpperCase()}
+                <span>{l.toUpperCase()}</span>
+                <span>{flagMapping[l as Language]}</span>
               </button>
             ))}
           </div>
