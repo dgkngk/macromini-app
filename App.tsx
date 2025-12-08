@@ -198,9 +198,7 @@ const App: React.FC = () => {
   );
 
   const dailyEntries = useMemo(() => {
-    return entries.filter(
-      (e) => e.planId === activePlanId && e.date === selectedDate,
-    );
+    return entries.filter((e) => e.date === selectedDate);
   }, [entries, activePlanId, selectedDate]);
 
   const dailyTotals: Macros = useMemo(() => {
