@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChefHat, Mail, Lock, User as UserIcon, ArrowRight, Loader2, AlertCircle, ShieldOff } from 'lucide-react';
+import { ChefHat, Mail, Lock, User as UserIcon, ArrowRight, Loader2, AlertCircle, ShieldOff, Globe } from 'lucide-react';
 import { TRANSLATIONS } from '../constants';
 import { Language, User } from '../types';
 import { api } from '../services/api';
@@ -7,9 +7,10 @@ import { api } from '../services/api';
 interface AuthProps {
   onLogin: (user: User) => void;
   lang: Language;
+  setLang: (lang: Language) => void; 
 }
 
-export const Auth: React.FC<AuthProps> = ({ onLogin, lang }) => {
+export const Auth: React.FC<AuthProps> = ({ onLogin, lang, setLang }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -83,7 +84,34 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, lang }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4 transition-colors">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4 transition-colors relative">
+      
+      {/* Language Selector - Top Right */}
+      <div className="absolute top-4 right-4 z-20">
+        <div className="relative group">
+          <button className="flex items-center gap-2 px-3 py-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg shadow-sm hover:shadow-md transition-all text-slate-600 dark:text-slate-300">
+            <Globe size={18} />
+            <span className="uppercase text-sm font-bold">{lang}</span>
+          </button>
+          
+          {/* Dropdown Content */}
+          <div className="absolute right-0 mt-2 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden hidden group-hover:block animate-in fade-in slide-in-from-top-2">
+            {Object.keys(TRANSLATIONS).map((l) => (
+              <button
+                key={l}
+                onClick={() => setLang(l as Language)}
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${
+                  lang === l ? 'text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-900/20' : 'text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                {/* You might want a mapping for 'en' -> 'English', etc. */}
+                {l.toUpperCase()} 
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300">
         
         {/* Header Graphic */}

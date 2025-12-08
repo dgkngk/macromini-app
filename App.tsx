@@ -47,7 +47,28 @@ const App: React.FC = () => {
   
   // Settings
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [language, setLanguage] = useState<Language>('en');
+  
+  // Add this helper function inside App component or outside
+  const getInitialLanguage = (): Language => {
+    // 1. Check Persistence
+    const storedLang = localStorage.getItem(BASE_STORAGE_KEYS.LANG) as Language | null;
+    if (storedLang) return storedLang;
+
+    // 2. Check System Locale
+    // navigator.language returns strings like 'en-US', 'fr-FR'. We just want the first part.
+    const systemLang = navigator.language.split('-')[0] as Language;
+    const supportedLanguages = Object.keys(TRANSLATIONS); // Get keys from your constants
+
+    if (supportedLanguages.includes(systemLang)) {
+      return systemLang;
+    }
+
+    // 3. Default Fallback
+    return 'en';
+  };
+
+  // Initialize state
+  const [language, setLanguage] = useState<Language>(getInitialLanguage);
 
   // Helper for translations
   const t = TRANSLATIONS[language];
@@ -59,9 +80,6 @@ const App: React.FC = () => {
     // Global Settings (Theme/Lang remain in simple storage for now)
     const storedTheme = localStorage.getItem(BASE_STORAGE_KEYS.THEME) as 'light' | 'dark' | null;
     if (storedTheme) setTheme(storedTheme);
-    
-    const storedLang = localStorage.getItem(BASE_STORAGE_KEYS.LANG) as Language | null;
-    if (storedLang) setLanguage(storedLang);
 
     // Listen to Firebase Auth State
     const unsubscribe = api.auth.onAuthStateChanged((user) => {
@@ -358,29 +376,26 @@ const App: React.FC = () => {
 
   const LanguageSelector = () => (
     <div className="relative group">
-       <div className="flex items-center gap-1 p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg cursor-pointer transition-colors relative">
-          <Globe size={18} className="pointer-events-none" />
-          <span className="font-bold text-xs uppercase text-slate-600 dark:text-slate-300 w-6 text-center pointer-events-none">
-            {language}
-          </span>
-          <select 
-            value={language} 
-            onChange={(e) => setLanguage(e.target.value as Language)}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
-            aria-label="Select Language"
-            title="Select Language"
+      <button className="flex items-center gap-2 px-3 py-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg shadow-sm hover:shadow-md transition-all text-slate-600 dark:text-slate-300">
+        <Globe size={18} />
+        <span className="uppercase text-sm font-bold">{language}</span>
+      </button>
+      
+      {/* Dropdown Content */}
+      <div className="absolute right-0 mt-2 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden hidden group-hover:block animate-in fade-in slide-in-from-top-2">
+        {Object.keys(TRANSLATIONS).map((l) => (
+          <button
+            key={l}
+            onClick={() => setLanguage(l as Language)}
+            className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${
+              language === l ? 'text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-900/20' : 'text-slate-600 dark:text-slate-300'
+            }`}
           >
-            <option value="en">English (EN)</option>
-            <option value="tr">Türkçe (TR)</option>
-            <option value="de">Deutsch (DE)</option>
-            <option value="fr">Français (FR)</option>
-            <option value="nl">Nederlands (NL)</option>
-            <option value="es">Español (ES)</option>
-            <option value="pt">Português (PT)</option>
-            <option value="ru">Русский (RU)</option>
-            <option value="zh">中文 (ZH)</option>
-          </select>
-       </div>
+            {/* You might want a mapping for 'en' -> 'English', etc. */}
+            {l.toUpperCase()} 
+          </button>
+        ))}
+      </div>
     </div>
   );
 
@@ -394,7 +409,7 @@ const App: React.FC = () => {
 
   // If not authenticated, show Auth Screen
   if (!user) {
-    return <Auth onLogin={handleLogin} lang={language} />;
+    return <Auth onLogin={handleLogin} lang={language} setLang={setLanguage} />;
   }
 
   // --- Render Functions ---
