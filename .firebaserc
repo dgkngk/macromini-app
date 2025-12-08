@@ -1,0 +1,9 @@
+{
+  "projects": {
+    "default": "macromini-test",
+    "test": "macromini-test",
+    "prod": "macromini-prod"
+  },
+  "targets": {},
+  "etags": {}
+}
