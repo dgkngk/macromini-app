@@ -7,6 +7,9 @@ import { analyzeMeal, generateRecipe } from "./gemini.js";
 import { db, auth } from "./firebase.js";
 import { onRequest } from "firebase-functions/v2/https";
 
+// Debug logging for Firestore connection
+console.log("Firestore Client Initialized. Project ID:", db.projectId);
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -22,7 +25,9 @@ if (process.argv[1] === __filename) {
 // --- Middleware: Verify Firebase Auth Token ---
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
+  console.log(`[Auth] Header present: ${!!authHeader}`);
   if (!authHeader?.startsWith("Bearer ")) {
+    console.log("[Auth] Missing or invalid header format");
     return res.status(401).json({ error: "Unauthorized" });
   }
 
@@ -30,6 +35,7 @@ const verifyToken = async (req, res, next) => {
   try {
     const decodedToken = await auth.verifyIdToken(token);
     req.user = decodedToken;
+    console.log(`[Auth] Verified user: ${req.user.uid}`);
     next();
   } catch (error) {
     console.error("Auth Error:", error);
@@ -90,14 +96,20 @@ app.get("/api/data/plans", verifyToken, async (req, res) => {
 app.post("/api/data/plans", verifyToken, async (req, res) => {
   try {
     const plan = req.body;
+    console.log(
+      `[Plans] Debug Info: ProjectID=${db.projectId}, GCLOUD_PROJECT=${process.env.GCLOUD_PROJECT}`,
+    );
+    console.log(`[Plans] Saving plan for user ${req.user.uid}`, plan);
     await db
       .collection("users")
       .doc(req.user.uid)
       .collection("plans")
       .doc(plan.id)
       .set(plan);
+    console.log(`[Plans] Successfully saved plan ${plan.id}`);
     res.json(plan);
   } catch (e) {
+    console.error(`[Plans] Error saving plan:`, e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -182,14 +194,17 @@ app.get("/api/data/recipes", verifyToken, async (req, res) => {
 app.post("/api/data/recipes", verifyToken, async (req, res) => {
   try {
     const recipe = req.body;
+    console.log(`[Recipes] Saving recipe for user ${req.user.uid}`, recipe);
     await db
       .collection("users")
       .doc(req.user.uid)
       .collection("recipes")
       .doc(recipe.id)
       .set(recipe);
+    console.log(`[Recipes] Successfully saved recipe ${recipe.id}`);
     res.json(recipe);
   } catch (e) {
+    console.error(`[Recipes] Error saving recipe:`, e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -281,4 +296,4 @@ if (process.argv[1] === __filename) {
   });
 }
 
-export const api = onRequest(app);
+export const api = onRequest({ secrets: ["GEMINI_API_KEY"] }, app);

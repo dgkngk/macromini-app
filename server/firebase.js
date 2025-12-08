@@ -1,6 +1,6 @@
-import { initializeApp, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-import { getAuth } from 'firebase-admin/auth';
+import { initializeApp, getApps } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 
 // Initialize Firebase Admin SDK
 // On Cloud Run, this uses Application Default Credentials automatically.
@@ -9,5 +9,8 @@ if (getApps().length === 0) {
   initializeApp();
 }
 
-export const db = getFirestore();
+// TODO: Replace 'macromini-test' with your actual database name.
+// Check Firebase Console -> Firestore -> Data to confirm the name.
+const DATABASE_ID = "macromini-test";
+export const db = getFirestore(DATABASE_ID);
 export const auth = getAuth();
