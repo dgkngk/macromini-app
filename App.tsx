@@ -373,6 +373,14 @@ const App: React.FC = () => {
     updateShoppingList(newList);
   };
 
+  const handleUpdateShoppingItem = async (id: string, updates: Partial<ShoppingItem>) => {
+    const updatedList = shoppingList.map(item => 
+      item.id === id ? { ...item, ...updates } : item
+    );
+    setShoppingList(updatedList);
+    await api.shopping.saveAll(user?.id || 'guest', updatedList);
+  };
+
   // Execution Handlers
   const executeDelete = async () => {
     if (!itemToDelete || !user) return;
@@ -785,6 +793,7 @@ const App: React.FC = () => {
             onAdd={handleAddShoppingItem}
             onToggle={handleToggleShoppingItem}
             onDelete={handleDeleteShoppingItem}
+            onUpdate={handleUpdateShoppingItem}
             onClearCompleted={handleClearCompletedShopping}
             lang={language}
           />
