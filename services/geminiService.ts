@@ -273,10 +273,10 @@ export const generateShoppingList = async (
         Instructions:
         1. Output ONLY a JSON array of strings.
         2. Combine duplicates (e.g. "2 eggs" and "1 egg" -> "3 eggs").
-        3. Standardize units (e.g. use "g", "ml", "tbsp", "cup").
-        4. Translate items to ${langMap[lang]}.
+        3. Standardize units and translate them to the target language (e.g. for Turkish use 'g', 'ml', 'yk', 'sb').
+        4. Translate BOTH the ingredient names AND the units to ${langMap[lang] || "English"}.
         5. Remove pantry staples like "water" or "ice" if they are obvious.
-        6. Format as: "Quantity Unit Item" (e.g. "500g Chicken Breast", "2 Onions").
+        6. Format as: "Quantity Unit Item" (fully localized string).
       `,
       config: {
         responseMimeType: "application/json",
