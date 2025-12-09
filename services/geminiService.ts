@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import { auth } from "../lib/firebase";
 import {
   AiAnalysisResponse,
   AiRecipeResponse,
@@ -18,15 +19,30 @@ if (!USE_BACKEND && apiKey) {
   ai = new GoogleGenAI({ apiKey });
 }
 
+// Helper: Get Auth Token
+const getAuthToken = async () => {
+  const user = auth.currentUser;
+  if (!user) return null;
+  return await user.getIdToken();
+};
+
 export const analyzeMeal = async (
   description: string,
 ): Promise<AiAnalysisResponse> => {
   // 1. Production Mode: Use Backend
   if (USE_BACKEND) {
     try {
+      const token = await getAuthToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch("/api/ai/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ description }),
       });
       if (!res.ok) throw new Error("Backend analysis failed");
@@ -106,9 +122,17 @@ export const generateAiRecipe = async (
   // 1. Production Mode: Use Backend
   if (USE_BACKEND) {
     try {
+      const token = await getAuthToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch("/api/ai/recipe", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           plan,
           remainingMacros,
@@ -230,9 +254,17 @@ export const generateShoppingList = async (
   // 1. Production Mode Check (same as others)
   if (USE_BACKEND) {
     try {
+      const token = await getAuthToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch("/api/ai/shopping", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ ingredients, lang }),
       });
       if (!res.ok) throw new Error("Backend shopping list generation failed");
