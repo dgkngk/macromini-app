@@ -39,6 +39,8 @@ import {
   Loader2,
 } from "lucide-react";
 
+import { generateShoppingList } from "./services/geminiService";
+
 const App: React.FC = () => {
   // --- Auth State ---
   const [user, setUser] = useState<User | null>(null);
@@ -346,8 +348,15 @@ const App: React.FC = () => {
     await api.shopping.saveAll(user.id, newList);
   };
 
-  const handleAddToShoppingList = (ingredients: string[]) => {
-    const newList = mergeShoppingList(shoppingList, ingredients);
+  const handleAddToShoppingList = async (ingredients: string[]) => {
+    // 1. Get AI-cleaned list
+    // You might want to show a global loading indicator here if you wish,
+    // but usually component-level loading (Phase 3) is better.
+    const aiIngredients = await generateShoppingList(ingredients, language);
+    console.log(aiIngredients);
+
+    // 2. Merge using existing logic
+    const newList = mergeShoppingList(shoppingList, aiIngredients);
     updateShoppingList(newList);
   };
 
@@ -373,12 +382,15 @@ const App: React.FC = () => {
     updateShoppingList(newList);
   };
 
-  const handleUpdateShoppingItem = async (id: string, updates: Partial<ShoppingItem>) => {
-    const updatedList = shoppingList.map(item => 
-      item.id === id ? { ...item, ...updates } : item
+  const handleUpdateShoppingItem = async (
+    id: string,
+    updates: Partial<ShoppingItem>,
+  ) => {
+    const updatedList = shoppingList.map((item) =>
+      item.id === id ? { ...item, ...updates } : item,
     );
     setShoppingList(updatedList);
-    await api.shopping.saveAll(user?.id || 'guest', updatedList);
+    await api.shopping.saveAll(user?.id || "guest", updatedList);
   };
 
   // Execution Handlers

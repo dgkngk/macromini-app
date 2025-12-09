@@ -219,7 +219,64 @@ export const generateAiRecipe = async (
 
     return JSON.parse(text) as AiRecipeResponse;
   } catch (error) {
-    console.error("Error generating recipe:", error);
     throw error;
+  }
+};
+
+export const generateShoppingList = async (
+  ingredients: string[], 
+  lang: Language
+): Promise<string[]> => {
+  // 1. Production Mode Check (same as others)
+  if (USE_BACKEND) {
+     // ... fetch('/api/ai/shopping') implementation if needed
+     // For now, we can skip or copy the pattern if you have a backend endpoint ready.
+  }
+
+  // 2. Client Fallback
+  if (!ai) {
+    if (!apiKey) throw new Error("API Key missing");
+    ai = new GoogleGenAI({ apiKey });
+  }
+
+  const langMap: Record<Language, string> = {
+    en: "English", tr: "Turkish", de: "German", fr: "French", 
+    nl: "Dutch", es: "Spanish", pt: "Portuguese", ru: "Russian", zh: "Chinese"
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: `
+        You are a smart kitchen assistant.
+        Convert the following recipe ingredients into a consolidated shopping list.
+        
+        Ingredients:
+        ${JSON.stringify(ingredients)}
+
+        Instructions:
+        1. Output ONLY a JSON array of strings.
+        2. Combine duplicates (e.g. "2 eggs" and "1 egg" -> "3 eggs").
+        3. Standardize units (e.g. use "g", "ml", "tbsp", "cup").
+        4. Translate items to ${langMap[lang]}.
+        5. Remove pantry staples like "water" or "ice" if they are obvious.
+        6. Format as: "Quantity Unit Item" (e.g. "500g Chicken Breast", "2 Onions").
+      `,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING }
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) return ingredients; // Fallback to original if AI fails
+    return JSON.parse(text) as string[];
+
+  } catch (error) {
+    console.error("AI Shopping List Error", error);
+    return ingredients; // Fallback
   }
 };
