@@ -224,13 +224,22 @@ export const generateAiRecipe = async (
 };
 
 export const generateShoppingList = async (
-  ingredients: string[], 
-  lang: Language
+  ingredients: string[],
+  lang: Language,
 ): Promise<string[]> => {
   // 1. Production Mode Check (same as others)
   if (USE_BACKEND) {
-     // ... fetch('/api/ai/shopping') implementation if needed
-     // For now, we can skip or copy the pattern if you have a backend endpoint ready.
+    try {
+      const res = await fetch("/api/ai/shopping", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredients, lang }),
+      });
+      if (!res.ok) throw new Error("Backend shopping list generation failed");
+      return await res.json();
+    } catch (e) {
+      console.error("Backend error", e);
+    }
   }
 
   // 2. Client Fallback
@@ -240,8 +249,15 @@ export const generateShoppingList = async (
   }
 
   const langMap: Record<Language, string> = {
-    en: "English", tr: "Turkish", de: "German", fr: "French", 
-    nl: "Dutch", es: "Spanish", pt: "Portuguese", ru: "Russian", zh: "Chinese"
+    en: "English",
+    tr: "Turkish",
+    de: "German",
+    fr: "French",
+    nl: "Dutch",
+    es: "Spanish",
+    pt: "Portuguese",
+    ru: "Russian",
+    zh: "Chinese",
   };
 
   try {
@@ -250,7 +266,7 @@ export const generateShoppingList = async (
       contents: `
         You are a smart kitchen assistant.
         Convert the following recipe ingredients into a consolidated shopping list.
-        
+
         Ingredients:
         ${JSON.stringify(ingredients)}
 
@@ -266,15 +282,14 @@ export const generateShoppingList = async (
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
-          items: { type: Type.STRING }
-        }
-      }
+          items: { type: Type.STRING },
+        },
+      },
     });
 
     const text = response.text;
     if (!text) return ingredients; // Fallback to original if AI fails
     return JSON.parse(text) as string[];
-
   } catch (error) {
     console.error("AI Shopping List Error", error);
     return ingredients; // Fallback

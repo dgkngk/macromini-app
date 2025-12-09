@@ -3,7 +3,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import "dotenv/config";
-import { analyzeMeal, generateRecipe } from "./gemini.js";
+import { analyzeMeal, generateRecipe, generateShoppingList } from "./gemini.js";
 import { db, auth } from "./firebase.js";
 import { onRequest } from "firebase-functions/v2/https";
 
@@ -73,6 +73,17 @@ app.post("/api/ai/recipe", async (req, res) => {
   } catch (error) {
     console.error("Recipe error:", error);
     res.status(500).json({ error: "Failed to generate recipe" });
+  }
+});
+
+app.post("/api/ai/shopping", async (req, res) => {
+  try {
+    const { ingredients, lang } = req.body;
+    const data = await generateShoppingList(ingredients, lang);
+    res.json(data);
+  } catch (error) {
+    console.error("Shopping list error:", error);
+    res.status(500).json({ error: "Failed to generate shopping list" });
   }
 });
 
