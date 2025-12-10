@@ -7,6 +7,7 @@ import {
   Macros,
   Language,
 } from "../types";
+import { rateLimitStore } from "../lib/rateLimitStore";
 
 // Determine if we should use Backend API or Client-Side Key
 // Fix: Property 'env' does not exist on type 'ImportMeta'
@@ -45,6 +46,7 @@ export const analyzeMeal = async (
         headers,
         body: JSON.stringify({ description }),
       });
+      rateLimitStore.update(res.headers);
       if (!res.ok) throw new Error("Backend analysis failed");
       return await res.json();
     } catch (e) {
@@ -141,6 +143,7 @@ export const generateAiRecipe = async (
           userPrompt,
         }),
       });
+      rateLimitStore.update(res.headers);
       if (!res.ok) throw new Error("Backend recipe generation failed");
       return await res.json();
     } catch (e) {
@@ -267,6 +270,7 @@ export const generateShoppingList = async (
         headers,
         body: JSON.stringify({ ingredients, lang }),
       });
+      rateLimitStore.update(res.headers);
       if (!res.ok) throw new Error("Backend shopping list generation failed");
       return await res.json();
     } catch (e) {

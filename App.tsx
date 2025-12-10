@@ -21,6 +21,7 @@ import { PlanEditor } from "./components/PlanEditor";
 import { RecipeModal } from "./components/RecipeModal";
 import { ShoppingList } from "./components/ShoppingList";
 import { ConfirmModal } from "./components/ConfirmModal";
+import { RateLimitProgressBar } from "./components/RateLimitProgressBar";
 import { Auth } from "./components/Auth";
 import { mergeShoppingList } from "./services/shoppingUtils";
 import {
@@ -599,6 +600,7 @@ const App: React.FC = () => {
           </button>
         </div>
       </div>
+      <RateLimitProgressBar />
     </header>
   );
 

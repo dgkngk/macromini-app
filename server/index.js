@@ -7,6 +7,7 @@ import { rateLimit } from "express-rate-limit";
 import { analyzeMeal, generateRecipe, generateShoppingList } from "./gemini.js";
 import { db, auth } from "./firebase.js";
 import { onRequest } from "firebase-functions/v2/https";
+import { FirestoreStore } from "./firestoreRateLimit.js";
 
 // Debug logging for Firestore connection
 console.log("Firestore Client Initialized. Project ID:", db.projectId);
@@ -17,7 +18,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-app.set('trust proxy', 1); // Trust proxy for rate limiter
+app.set("trust proxy", 1); // Trust proxy for rate limiter
 
 app.use(cors());
 app.use(express.json());
@@ -27,11 +28,11 @@ if (process.argv[1] === __filename) {
 
 // --- Utils: Base64 Encoding/Decoding ---
 const encodeData = (obj) => {
-  return Buffer.from(JSON.stringify(obj)).toString('base64');
+  return Buffer.from(JSON.stringify(obj)).toString("base64");
 };
 
 const decodeData = (base64Str) => {
-  return JSON.parse(Buffer.from(base64Str, 'base64').toString('utf-8'));
+  return JSON.parse(Buffer.from(base64Str, "base64").toString("utf-8"));
 };
 
 // --- Middleware: Verify Firebase Auth Token ---
@@ -57,11 +58,13 @@ const verifyToken = async (req, res, next) => {
 
 // --- Middleware: Rate Limiter ---
 const aiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  limit: 10, // Limit each IP to 10 requests per windowMs
-  message: { error: "Too many AI requests, please try again later." },
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  limit: 10, // Limit each user to 10 requests per windowMs
+  message: { error: "Too many AI requests today, please try again tomorrow." },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => (req.user ? req.user.uid : "unknown"),
+  store: new FirestoreStore(),
 });
 
 // --- AI Routes ---
@@ -132,16 +135,16 @@ app.post("/api/data/plans", verifyToken, async (req, res) => {
   try {
     const plan = req.body;
     console.log(`[Plans] Saving plan for user ${req.user.uid}`, plan);
-    
+
     const encodedPayload = { data: encodeData(plan) };
-    
+
     await db
       .collection("users")
       .doc(req.user.uid)
       .collection("plans")
       .doc(plan.id)
       .set(encodedPayload);
-      
+
     console.log(`[Plans] Successfully saved plan ${plan.id}`);
     res.json(plan);
   } catch (e) {
@@ -171,9 +174,9 @@ app.get("/api/data/meals", verifyToken, async (req, res) => {
       .collection("users")
       .doc(req.user.uid)
       .collection("meals")
-      .orderBy("timestamp", "desc") // Warning: Ordering might fail if timestamp is inside blob. 
+      .orderBy("timestamp", "desc") // Warning: Ordering might fail if timestamp is inside blob.
       // If we move everything to blob, we lose querying capability on fields unless we promote them.
-      // The prompt says "Encode user data ... before saving". It doesn't explicitly say "preserve indexing". 
+      // The prompt says "Encode user data ... before saving". It doesn't explicitly say "preserve indexing".
       // However, "orderBy('timestamp')" implies timestamp is a top-level field.
       // If I put everything in `data`, `timestamp` is hidden.
       // For this implementation, I will assume we should ONLY encode the data, but maybe keep critical metadata if needed?
@@ -182,26 +185,26 @@ app.get("/api/data/meals", verifyToken, async (req, res) => {
       // BUT, existing code: `app.get... orderBy("timestamp", "desc")`.
       // If I change the save to `set({ data: ... })`, the `timestamp` field will be GONE from the top level.
       // This will BREAK the `orderBy`.
-      // 
+      //
       // CORRECTION: The Prompt says: "Update GET Routes ... After fetching doc.data(), apply decoding".
       // It DOES NOT address the indexing issue.
       // However, `plans` route didn't have orderBy. `meals` DOES.
       // `recipes` has `orderBy("savedAt")`.
-      // 
+      //
       // To prevent breaking the app, I should probably extract the timestamp/savedAt and save it alongside the data blob.
       // OR, the user is accepting that queries might need adjustment (but I'm not instructed to change queries).
-      // 
-      // Safer approach: 
+      //
+      // Safer approach:
       // `const encodedPayload = { data: encodeData(req.body), timestamp: req.body.timestamp };` for meals.
       // `const encodedPayload = { data: encodeData(req.body), savedAt: req.body.savedAt };` for recipes.
-      // 
+      //
       // I will implement this safety measure to ensure `orderBy` continues to work if those fields exist in the body.
       .limit(100)
       .get();
-      
+
     const meals = snapshot.docs.map((doc) => {
-       const d = doc.data();
-       return d.data ? decodeData(d.data) : d;
+      const d = doc.data();
+      return d.data ? decodeData(d.data) : d;
     });
     res.json(meals);
   } catch (e) {
@@ -212,11 +215,11 @@ app.get("/api/data/meals", verifyToken, async (req, res) => {
 app.post("/api/data/meals", verifyToken, async (req, res) => {
   try {
     const meal = req.body;
-    
+
     // Preserve timestamp for indexing if it exists
     const encodedPayload = { data: encodeData(meal) };
     if (meal.timestamp) {
-        encodedPayload.timestamp = meal.timestamp;
+      encodedPayload.timestamp = meal.timestamp;
     }
 
     await db
@@ -255,8 +258,8 @@ app.get("/api/data/recipes", verifyToken, async (req, res) => {
       .orderBy("savedAt", "desc")
       .get();
     const recipes = snapshot.docs.map((doc) => {
-        const d = doc.data();
-        return d.data ? decodeData(d.data) : d;
+      const d = doc.data();
+      return d.data ? decodeData(d.data) : d;
     });
     res.json(recipes);
   } catch (e) {
@@ -268,10 +271,10 @@ app.post("/api/data/recipes", verifyToken, async (req, res) => {
   try {
     const recipe = req.body;
     console.log(`[Recipes] Saving recipe for user ${req.user.uid}`, recipe);
-    
+
     const encodedPayload = { data: encodeData(recipe) };
     if (recipe.savedAt) {
-        encodedPayload.savedAt = recipe.savedAt;
+      encodedPayload.savedAt = recipe.savedAt;
     }
 
     await db
@@ -311,21 +314,21 @@ app.get("/api/data/shopping", verifyToken, async (req, res) => {
       .collection("lists")
       .doc("shopping")
       .get();
-    
+
     if (doc.exists) {
-        const d = doc.data();
-        // If encoded, it's in d.data (as a string representing the array or object)
-        // Original was: set({ items }) -> doc has { items: [...] }
-        // New: set({ data: encodeData(items) }) -> doc has { data: "..." }
-        // So decodeData(d.data) should return `items` (the array).
-        if (d.data) {
-            const items = decodeData(d.data);
-            res.json(items);
-        } else {
-            res.json(d.items || []);
-        }
+      const d = doc.data();
+      // If encoded, it's in d.data (as a string representing the array or object)
+      // Original was: set({ items }) -> doc has { items: [...] }
+      // New: set({ data: encodeData(items) }) -> doc has { data: "..." }
+      // So decodeData(d.data) should return `items` (the array).
+      if (d.data) {
+        const items = decodeData(d.data);
+        res.json(items);
+      } else {
+        res.json(d.items || []);
+      }
     } else {
-        res.json([]);
+      res.json([]);
     }
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -337,7 +340,7 @@ app.post("/api/data/shopping", verifyToken, async (req, res) => {
     const items = req.body; // Array of items
     // Encode the array directly
     const encodedPayload = { data: encodeData(items) };
-    
+
     await db
       .collection("users")
       .doc(req.user.uid)
@@ -359,17 +362,17 @@ app.get("/api/data/settings/activePlan", verifyToken, async (req, res) => {
       .collection("settings")
       .doc("general")
       .get();
-      
+
     if (doc.exists) {
-        const d = doc.data();
-        if (d.data) {
-            const decoded = decodeData(d.data);
-            res.json({ activePlanId: decoded.activePlanId });
-        } else {
-            res.json({ activePlanId: d.activePlanId });
-        }
+      const d = doc.data();
+      if (d.data) {
+        const decoded = decodeData(d.data);
+        res.json({ activePlanId: decoded.activePlanId });
+      } else {
+        res.json({ activePlanId: d.activePlanId });
+      }
     } else {
-        res.json({ activePlanId: null });
+      res.json({ activePlanId: null });
     }
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -379,7 +382,7 @@ app.get("/api/data/settings/activePlan", verifyToken, async (req, res) => {
 app.post("/api/data/settings/activePlan", verifyToken, async (req, res) => {
   try {
     const { planId } = req.body;
-    // We can't easily merge with base64 blob unless we read-modify-write, 
+    // We can't easily merge with base64 blob unless we read-modify-write,
     // but here we are just setting activePlanId.
     // Let's assume this doc only holds this setting for now, or we overwrite.
     // The original code used set(..., { merge: true }).
@@ -387,16 +390,16 @@ app.post("/api/data/settings/activePlan", verifyToken, async (req, res) => {
     // But for simplicity and following instructions "wrap the data", I will wrap the partial update.
     // However, saving partial update as a blob might overwrite other settings if they existed and we don't fetch first.
     // For `general` settings, it seems `activePlanId` is the main thing.
-    
+
     const encodedPayload = { data: encodeData({ activePlanId: planId }) };
-    
+
     await db
       .collection("users")
       .doc(req.user.uid)
       .collection("settings")
       .doc("general")
       .set(encodedPayload); // Removed merge: true because we are replacing with blob
-      
+
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
