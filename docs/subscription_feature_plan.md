@@ -5,7 +5,7 @@ This document outlines the steps to implement a tiered subscription system for M
 
 **Tiers:**
 1.  **Free**: 10 requests per 24 hours. (Default)
-2.  **Plus**: 15 requests per 1 hour. (Purchasable via Stripe)
+2.  **Plus**: 15 requests per 1 hour. (Purchasable via Lemon Squeezy)
 3.  **Elite**: 100 requests per 1 hour. (Manual assignment via Firebase Console)
 
 ## 1. Database Schema Design (Firestore)
@@ -20,30 +20,32 @@ Fields:
     - `0`: Free (Default)
     - `1`: Plus
     - `2`: Elite
-- `stripeCustomerId`: String (Optional, for Plus users).
+- `lemonSqueezyCustomerId`: String (Optional, for Plus users).
 - `subscriptionStatus`: Integer.
     - `0`: Inactive / Canceled
     - `1`: Active
     - `2`: Past Due / Payment Failed
     - `3`: Trialing
-- `subscriptionId`: String (Stripe Subscription ID).
+- `subscriptionId`: String (Lemon Squeezy Subscription ID).
 
 **Note:** For "Elite" users, you will manually set `tier: 2` in the Firebase Console.
 
 ## 2. Backend Implementation (Server)
 
 ### 2.1. Dependencies
-- Install the Stripe library:
+- Install the necessary library (or use fetch/axios):
   ```bash
   cd server
-  npm install stripe
+  npm install axios
   ```
+  *(We will use the Lemon Squeezy API directly via axios)*
 
 ### 2.2. Environment Variables
 Add to `.env`:
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `STRIPE_PRICE_ID_PLUS` (The Price ID for the Plus plan from Stripe Dashboard)
+- `LEMONSQUEEZY_API_KEY`
+- `LEMONSQUEEZY_WEBHOOK_SECRET`
+- `LEMONSQUEEZY_VARIANT_ID` (The Variant ID for the Plus plan from Lemon Squeezy Dashboard)
+- `LEMONSQUEEZY_STORE_ID` (Your Store ID)
 - `CLIENT_URL` (e.g., `http://localhost:5173` or your production URL)
 - `GEMINI_API_KEY_FREE`
 - `GEMINI_API_KEY_PLUS`
@@ -66,24 +68,26 @@ The current rate limiter is static. We need a dynamic one that adjusts based on 
 | `plus` | 1 hour | 15 |
 | `elite` | 1 hour | 100 |
 
-### 2.4. Stripe Integration Routes
+### 2.4. Lemon Squeezy Integration Routes
 Create new routes in `server/index.js` (or `server/routes/subscription.js`):
 
 1.  **POST `/api/subscription/create-checkout-session`**:
     -   Requires Auth.
-    -   Creates a Stripe Checkout Session for the "Plus" price.
+    -   Creates a Checkout via Lemon Squeezy API (`https://api.lemonsqueezy.com/v1/checkouts`).
+    -   Passes `custom_data` containing the `userId`.
     -   Returns the `url` for the frontend to redirect to.
 
 2.  **POST `/api/subscription/portal`**:
     -   Requires Auth.
-    -   Creates a Stripe Customer Portal session (for users to manage/cancel subscriptions).
+    -   Returns the customer portal URL.
+    -   *Note: Lemon Squeezy provides a "Customer Portal" link via their API or you can direct users to their "My Orders" page if authenticated correctly, or use the `update_payment_method` URLs provided in subscription objects.*
 
-3.  **POST `/api/webhooks/stripe`**:
-    -   **Important**: Must use `express.raw({ type: 'application/json' })` middleware for signature verification.
-    -   Events to handle:
-        -   `checkout.session.completed`: Update user doc with `stripeCustomerId`, `subscriptionId`, set `tier = 1` (Plus) and `subscriptionStatus = 1` (Active).
-        -   `customer.subscription.updated`: Update `subscriptionStatus` (e.g., if payment fails, set to `2`).
-        -   `customer.subscription.deleted`: Set `tier = 0` (Free) and `subscriptionStatus = 0` (Canceled).
+3.  **POST `/api/webhooks/lemonsqueezy`**:
+    -   **Important**: Verify the `X-Signature` header using the `LEMONSQUEEZY_WEBHOOK_SECRET`.
+    -   Events to handle (`meta.event_name`):
+        -   `subscription_created`: Update user doc with `lemonSqueezyCustomerId`, `subscriptionId`, set `tier = 1` (Plus) and `subscriptionStatus = 1` (Active).
+        -   `subscription_updated`: Update `subscriptionStatus` (e.g., if status changes to `past_due` or `active`).
+        -   `subscription_cancelled` or `subscription_expired`: Set `tier = 0` (Free) and `subscriptionStatus = 0` (Canceled).
 
 ### 2.5. Tier-Specific Backend API Keys
 To prevent "Free" users from consuming the API quota reserved for "Plus" or "Elite" users, we will use distinct API keys for each tier.
@@ -119,7 +123,7 @@ export interface UserProfile {
 ### 3.2. Subscription Service
 Add methods to `services/api.ts`:
 - `createCheckoutSession()`
-- `createPortalSession()`
+- `getPortalUrl()` (if applicable)
 - `fetchUserProfile()` (to get current tier)
 
 ### 3.3. UI Components
@@ -127,7 +131,7 @@ Add methods to `services/api.ts`:
     -   Display current tier.
     -   If `Free`: Show "Upgrade to Plus ($X/mo)" button.
     -   If `Plus`: Show "Manage Subscription" button.
-    -   If `Elite`: Show "Elite Member" badge (no upgrade/manage buttons needed, or just "Manage" if you want them to see portal for billing history if applicable, but usually Elite is free/manual).
+    -   If `Elite`: Show "Elite Member" badge.
 2.  **Limit Reached Modal**:
     -   When the API returns 429 (Too Many Requests), show a modal:
         -   "You've hit your daily limit."
@@ -138,5 +142,5 @@ Add methods to `services/api.ts`:
 -   Use Firestore Rules to ensure users can only read their own profile and *cannot* write their own `tier` field (tier updates must come from Admin SDK/Webhooks).
 
 ## 5. Deployment
--   Set Stripe environment variables in Firebase Functions config or Cloud Run env vars.
--   Configure Stripe Webhook URL in the Stripe Dashboard to point to your deployed function: `https://<region>-<project>.cloudfunctions.net/api/webhooks/stripe` (or your custom domain path).
+-   Set Lemon Squeezy environment variables in Firebase Functions config or Cloud Run env vars.
+-   Configure Lemon Squeezy Webhook URL in the Lemon Squeezy Dashboard to point to your deployed function: `https://<region>-<project>.cloudfunctions.net/api/webhooks/lemonsqueezy` (or your custom domain path).

@@ -47,6 +47,11 @@ export const analyzeMeal = async (
         body: JSON.stringify({ description }),
       });
       rateLimitStore.update(res.headers);
+      if (res.status === 429) {
+        if (typeof window !== "undefined")
+          window.dispatchEvent(new Event("limit-reached"));
+        throw new Error("Rate limit reached");
+      }
       if (!res.ok) throw new Error("Backend analysis failed");
       return await res.json();
     } catch (e) {
@@ -144,6 +149,11 @@ export const generateAiRecipe = async (
         }),
       });
       rateLimitStore.update(res.headers);
+      if (res.status === 429) {
+        if (typeof window !== "undefined")
+          window.dispatchEvent(new Event("limit-reached"));
+        throw new Error("Rate limit reached");
+      }
       if (!res.ok) throw new Error("Backend recipe generation failed");
       return await res.json();
     } catch (e) {
@@ -271,6 +281,11 @@ export const generateShoppingList = async (
         body: JSON.stringify({ ingredients, lang }),
       });
       rateLimitStore.update(res.headers);
+      if (res.status === 429) {
+        if (typeof window !== "undefined")
+          window.dispatchEvent(new Event("limit-reached"));
+        throw new Error("Rate limit reached");
+      }
       if (!res.ok) throw new Error("Backend shopping list generation failed");
       return await res.json();
     } catch (e) {

@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import "dotenv/config";
 import { rateLimit } from "express-rate-limit";
+import crypto from "crypto";
 import { analyzeMeal, generateRecipe, generateShoppingList } from "./gemini.js";
 import { db, auth } from "./firebase.js";
 import { onRequest } from "firebase-functions/v2/https";
@@ -21,10 +22,33 @@ const PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1); // Trust proxy for rate limiter
 
 app.use(cors());
-app.use(express.json());
+
+// Capture raw body for Lemon Squeezy webhook signature verification
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
+
 if (process.argv[1] === __filename) {
   app.use(express.static(path.join(__dirname, "../dist")));
 }
+
+// --- Constants ---
+const USER_TIER = {
+  FREE: 0,
+  PLUS: 1,
+  ELITE: 2,
+};
+
+const SUBSCRIPTION_STATUS = {
+  INACTIVE: 0,
+  ACTIVE: 1,
+  PAST_DUE: 2,
+  TRIALING: 3,
+};
 
 // --- Utils: Base64 Encoding/Decoding ---
 const encodeData = (obj) => {
@@ -38,7 +62,6 @@ const decodeData = (base64Str) => {
 // --- Middleware: Verify Firebase Auth Token ---
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  // console.log(`[Auth] Header present: ${!!authHeader}`);
   if (!authHeader?.startsWith("Bearer ")) {
     console.log("[Auth] Missing or invalid header format");
     return res.status(401).json({ error: "Unauthorized" });
@@ -48,7 +71,6 @@ const verifyToken = async (req, res, next) => {
   try {
     const decodedToken = await auth.verifyIdToken(token);
     req.user = decodedToken;
-    // console.log(`[Auth] Verified user: ${req.user.uid}`);
     next();
   } catch (error) {
     console.error("Auth Error:", error);
@@ -56,25 +78,283 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-// --- Middleware: Rate Limiter ---
-const aiLimiter = rateLimit({
+// --- Middleware: Attach User Tier ---
+const attachUserTier = async (req, res, next) => {
+  if (!req.user) return next();
+
+  try {
+    const userDoc = await db.collection("users").doc(req.user.uid).get();
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      req.user.tier = userData.tier !== undefined ? userData.tier : USER_TIER.FREE;
+      req.user.lemonSqueezyCustomerId = userData.lemonSqueezyCustomerId;
+      req.user.subscriptionId = userData.subscriptionId;
+    } else {
+      req.user.tier = USER_TIER.FREE;
+    }
+  } catch (error) {
+    console.error("Error fetching user tier:", error);
+    req.user.tier = USER_TIER.FREE; // Default to free on error
+  }
+  next();
+};
+
+// --- Rate Limiters ---
+
+const freeLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  limit: 10, // Limit each user to 10 requests per windowMs
-  message: { error: "Too many AI requests today, please try again tomorrow." },
+  limit: 10,
+  message: { error: "Too many AI requests today. Upgrade to Plus for more!" },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => (req.user ? req.user.uid : "unknown"),
+  keyGenerator: (req) => (req.user ? `${req.user.uid}_daily` : "unknown"),
   store: new FirestoreStore(),
+});
+
+const plusLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  limit: 15,
+  message: { error: "Hourly limit reached." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req.user ? `${req.user.uid}_hourly` : "unknown"),
+  store: new FirestoreStore(),
+});
+
+const eliteLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  limit: 100,
+  message: { error: "Elite hourly limit reached." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req.user ? `${req.user.uid}_hourly` : "unknown"),
+  store: new FirestoreStore(),
+});
+
+const dynamicRateLimiter = async (req, res, next) => {
+  // Ensure user tier is attached
+  if (req.user.tier === USER_TIER.ELITE) {
+    return eliteLimiter(req, res, next);
+  } else if (req.user.tier === USER_TIER.PLUS) {
+    return plusLimiter(req, res, next);
+  } else {
+    return freeLimiter(req, res, next);
+  }
+};
+
+// --- Helper: Get API Key based on Tier ---
+const getApiKeyForUser = (user) => {
+  const tier = user.tier || USER_TIER.FREE;
+  if (tier === USER_TIER.ELITE) return process.env.GEMINI_API_KEY_ELITE || process.env.GEMINI_API_KEY_FREE;
+  if (tier === USER_TIER.PLUS) return process.env.GEMINI_API_KEY_PLUS || process.env.GEMINI_API_KEY_FREE;
+  return process.env.GEMINI_API_KEY_FREE;
+};
+
+// --- Routes ---
+
+// Lemon Squeezy Webhook
+app.post("/api/webhooks/lemonsqueezy", async (req, res) => {
+  const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
+  const hmac = crypto.createHmac("sha256", secret);
+  const digest = Buffer.from(hmac.update(req.rawBody).digest("hex"), "utf8");
+  const signature = Buffer.from(req.headers["x-signature"] || "", "utf8");
+
+  if (!crypto.timingSafeEqual(digest, signature)) {
+    console.error("Webhook signature verification failed.");
+    return res.status(400).send("Invalid signature");
+  }
+
+  const payload = req.body;
+  const { meta, data } = payload;
+  const eventName = meta.event_name;
+
+  try {
+    console.log(`[Lemon Squeezy] Event received: ${eventName}`);
+
+    if (eventName === "subscription_created") {
+      const userId = meta.custom_data ? meta.custom_data.user_id : null;
+      const attributes = data.attributes;
+      
+      if (userId) {
+        console.log(`[Lemon Squeezy] Subscription created for user ${userId}`);
+        await db.collection("users").doc(userId).set(
+          {
+            tier: USER_TIER.PLUS,
+            subscriptionStatus: SUBSCRIPTION_STATUS.ACTIVE,
+            lemonSqueezyCustomerId: attributes.customer_id,
+            subscriptionId: data.id,
+          },
+          { merge: true },
+        );
+      }
+    } else if (eventName === "subscription_updated") {
+        const attributes = data.attributes;
+        const subscriptionId = data.id;
+
+        const snapshot = await db
+            .collection("users")
+            .where("subscriptionId", "==", String(subscriptionId)) // Ensure string comparison
+            .limit(1)
+            .get();
+        
+        if (!snapshot.empty) {
+            const doc = snapshot.docs[0];
+            const statusStr = attributes.status;
+            let status = SUBSCRIPTION_STATUS.INACTIVE;
+            let tier = USER_TIER.FREE;
+
+            if (statusStr === "active") {
+                status = SUBSCRIPTION_STATUS.ACTIVE;
+                tier = USER_TIER.PLUS;
+            } else if (statusStr === "past_due") {
+                status = SUBSCRIPTION_STATUS.PAST_DUE;
+                tier = USER_TIER.FREE; // Or keep as PLUS but limit access? Usually demote or warn.
+            } else if (statusStr === "on_trial") {
+                status = SUBSCRIPTION_STATUS.TRIALING;
+                tier = USER_TIER.PLUS;
+            }
+
+            await doc.ref.update({
+                subscriptionStatus: status,
+                tier: tier,
+            });
+        }
+
+    } else if (eventName === "subscription_cancelled" || eventName === "subscription_expired") {
+        const subscriptionId = data.id;
+        const snapshot = await db
+            .collection("users")
+            .where("subscriptionId", "==", String(subscriptionId))
+            .limit(1)
+            .get();
+
+        if (!snapshot.empty) {
+             const doc = snapshot.docs[0];
+             await doc.ref.update({
+                 tier: USER_TIER.FREE,
+                 subscriptionStatus: SUBSCRIPTION_STATUS.INACTIVE,
+             });
+        }
+    }
+
+  } catch (error) {
+    console.error("Webhook processing error:", error);
+    return res.status(500).send("Webhook handler error");
+  }
+
+  res.json({ received: true });
+});
+
+// Subscription Routes
+app.post("/api/subscription/create-checkout-session", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const userEmail = req.user.email;
+    
+    // Lemon Squeezy API request
+    const response = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
+        method: "POST",
+        headers: {
+            "Accept": "application/vnd.api+json",
+            "Content-Type": "application/vnd.api+json",
+            "Authorization": `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`
+        },
+        body: JSON.stringify({
+            data: {
+                type: "checkouts",
+                attributes: {
+                    checkout_data: {
+                        custom: {
+                            user_id: userId
+                        },
+                        email: userEmail
+                    }
+                },
+                relationships: {
+                    store: {
+                        data: {
+                            type: "stores",
+                            id: process.env.LEMONSQUEEZY_STORE_ID
+                        }
+                    },
+                    variant: {
+                        data: {
+                            type: "variants",
+                            id: process.env.LEMONSQUEEZY_VARIANT_ID
+                        }
+                    }
+                }
+            }
+        })
+    });
+
+    if (!response.ok) {
+        const errText = await response.text();
+        console.error("Lemon Squeezy API Error:", errText);
+        throw new Error(`Lemon Squeezy API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const checkoutUrl = data.data.attributes.url;
+
+    res.json({ url: checkoutUrl });
+  } catch (error) {
+    console.error("Checkout Creation Error:", error);
+    res.status(500).json({ error: "Failed to create checkout session" });
+  }
+});
+
+app.post("/api/subscription/portal", verifyToken, attachUserTier, async (req, res) => {
+  try {
+    const subscriptionId = req.user.subscriptionId;
+    if (!subscriptionId) {
+        return res.status(400).json({ error: "No subscription found" });
+    }
+
+    // Fetch subscription details to get the portal URL
+    const response = await fetch(`https://api.lemonsqueezy.com/v1/subscriptions/${subscriptionId}`, {
+         method: "GET",
+         headers: {
+            "Accept": "application/vnd.api+json",
+            "Content-Type": "application/vnd.api+json",
+            "Authorization": `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`
+         }
+    });
+    
+    if (!response.ok) {
+        // Fallback or error
+         console.error("Failed to fetch subscription for portal URL");
+         return res.status(500).json({ error: "Could not retrieve portal URL" });
+    }
+
+    const data = await response.json();
+    const portalUrl = data.data.attributes.urls.customer_portal;
+
+    res.json({ url: portalUrl });
+  } catch (error) {
+    console.error("Portal Error:", error);
+    res.status(500).json({ error: "Failed to create portal session" });
+  }
+});
+
+// Get User Profile (Tier)
+app.get("/api/user/profile", verifyToken, attachUserTier, async (req, res) => {
+  res.json({
+    tier: req.user.tier,
+    subscriptionStatus: req.user.subscriptionStatus,
+  });
 });
 
 // --- AI Routes ---
 
-app.post("/api/ai/analyze", verifyToken, aiLimiter, async (req, res) => {
+app.post("/api/ai/analyze", verifyToken, attachUserTier, dynamicRateLimiter, async (req, res) => {
   try {
     const { description } = req.body;
     if (!description)
       return res.status(400).json({ error: "Description required" });
-    const data = await analyzeMeal(description);
+    
+    const apiKey = getApiKeyForUser(req.user);
+    const data = await analyzeMeal(description, apiKey);
     res.json(data);
   } catch (error) {
     console.error("Analyze error:", error);
@@ -82,16 +362,19 @@ app.post("/api/ai/analyze", verifyToken, aiLimiter, async (req, res) => {
   }
 });
 
-app.post("/api/ai/recipe", verifyToken, aiLimiter, async (req, res) => {
+app.post("/api/ai/recipe", verifyToken, attachUserTier, dynamicRateLimiter, async (req, res) => {
   try {
     const { plan, remainingMacros, targetCalories, lang, userPrompt } =
       req.body;
+    
+    const apiKey = getApiKeyForUser(req.user);
     const data = await generateRecipe(
       plan,
       remainingMacros,
       targetCalories,
       lang,
       userPrompt,
+      apiKey
     );
     res.json(data);
   } catch (error) {
@@ -100,10 +383,12 @@ app.post("/api/ai/recipe", verifyToken, aiLimiter, async (req, res) => {
   }
 });
 
-app.post("/api/ai/shopping", verifyToken, aiLimiter, async (req, res) => {
+app.post("/api/ai/shopping", verifyToken, attachUserTier, dynamicRateLimiter, async (req, res) => {
   try {
     const { ingredients, lang } = req.body;
-    const data = await generateShoppingList(ingredients, lang);
+    
+    const apiKey = getApiKeyForUser(req.user);
+    const data = await generateShoppingList(ingredients, lang, apiKey);
     res.json(data);
   } catch (error) {
     console.error("Shopping list error:", error);
@@ -174,31 +459,7 @@ app.get("/api/data/meals", verifyToken, async (req, res) => {
       .collection("users")
       .doc(req.user.uid)
       .collection("meals")
-      .orderBy("timestamp", "desc") // Warning: Ordering might fail if timestamp is inside blob.
-      // If we move everything to blob, we lose querying capability on fields unless we promote them.
-      // The prompt says "Encode user data ... before saving". It doesn't explicitly say "preserve indexing".
-      // However, "orderBy('timestamp')" implies timestamp is a top-level field.
-      // If I put everything in `data`, `timestamp` is hidden.
-      // For this implementation, I will assume we should ONLY encode the data, but maybe keep critical metadata if needed?
-      // "Update POST/PUT Routes ... Before calling db...set(plan), wrap the data"
-      // If I wrap the whole plan, I lose the timestamp field for indexing.
-      // BUT, existing code: `app.get... orderBy("timestamp", "desc")`.
-      // If I change the save to `set({ data: ... })`, the `timestamp` field will be GONE from the top level.
-      // This will BREAK the `orderBy`.
-      //
-      // CORRECTION: The Prompt says: "Update GET Routes ... After fetching doc.data(), apply decoding".
-      // It DOES NOT address the indexing issue.
-      // However, `plans` route didn't have orderBy. `meals` DOES.
-      // `recipes` has `orderBy("savedAt")`.
-      //
-      // To prevent breaking the app, I should probably extract the timestamp/savedAt and save it alongside the data blob.
-      // OR, the user is accepting that queries might need adjustment (but I'm not instructed to change queries).
-      //
-      // Safer approach:
-      // `const encodedPayload = { data: encodeData(req.body), timestamp: req.body.timestamp };` for meals.
-      // `const encodedPayload = { data: encodeData(req.body), savedAt: req.body.savedAt };` for recipes.
-      //
-      // I will implement this safety measure to ensure `orderBy` continues to work if those fields exist in the body.
+      .orderBy("timestamp", "desc") 
       .limit(100)
       .get();
 
@@ -216,7 +477,6 @@ app.post("/api/data/meals", verifyToken, async (req, res) => {
   try {
     const meal = req.body;
 
-    // Preserve timestamp for indexing if it exists
     const encodedPayload = { data: encodeData(meal) };
     if (meal.timestamp) {
       encodedPayload.timestamp = meal.timestamp;
@@ -317,10 +577,6 @@ app.get("/api/data/shopping", verifyToken, async (req, res) => {
 
     if (doc.exists) {
       const d = doc.data();
-      // If encoded, it's in d.data (as a string representing the array or object)
-      // Original was: set({ items }) -> doc has { items: [...] }
-      // New: set({ data: encodeData(items) }) -> doc has { data: "..." }
-      // So decodeData(d.data) should return `items` (the array).
       if (d.data) {
         const items = decodeData(d.data);
         res.json(items);
@@ -338,7 +594,6 @@ app.get("/api/data/shopping", verifyToken, async (req, res) => {
 app.post("/api/data/shopping", verifyToken, async (req, res) => {
   try {
     const items = req.body; // Array of items
-    // Encode the array directly
     const encodedPayload = { data: encodeData(items) };
 
     await db
@@ -382,15 +637,6 @@ app.get("/api/data/settings/activePlan", verifyToken, async (req, res) => {
 app.post("/api/data/settings/activePlan", verifyToken, async (req, res) => {
   try {
     const { planId } = req.body;
-    // We can't easily merge with base64 blob unless we read-modify-write,
-    // but here we are just setting activePlanId.
-    // Let's assume this doc only holds this setting for now, or we overwrite.
-    // The original code used set(..., { merge: true }).
-    // If we want to support merge with encoding, we'd need to fetch first.
-    // But for simplicity and following instructions "wrap the data", I will wrap the partial update.
-    // However, saving partial update as a blob might overwrite other settings if they existed and we don't fetch first.
-    // For `general` settings, it seems `activePlanId` is the main thing.
-
     const encodedPayload = { data: encodeData({ activePlanId: planId }) };
 
     await db
@@ -398,7 +644,7 @@ app.post("/api/data/settings/activePlan", verifyToken, async (req, res) => {
       .doc(req.user.uid)
       .collection("settings")
       .doc("general")
-      .set(encodedPayload); // Removed merge: true because we are replacing with blob
+      .set(encodedPayload); 
 
     res.json({ success: true });
   } catch (e) {
@@ -419,4 +665,4 @@ if (process.argv[1] === __filename) {
   });
 }
 
-export const api = onRequest({ secrets: ["GEMINI_API_KEY"] }, app);
+export const api = onRequest({ secrets: ["GEMINI_API_KEY", "LEMONSQUEEZY_API_KEY", "LEMONSQUEEZY_WEBHOOK_SECRET", "GEMINI_API_KEY_FREE", "GEMINI_API_KEY_PLUS", "GEMINI_API_KEY_ELITE"] }, app);

@@ -285,5 +285,29 @@ export const api = {
       const key = getUserKey(userId, BASE_STORAGE_KEYS.ACTIVE_PLAN);
       localStorage.setItem(key, planId);
     }
+  },
+
+  subscription: {
+    createCheckoutSession: async (userId: string) => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth('/api/subscription/create-checkout-session', { method: 'POST', body: JSON.stringify({}) });
+      }
+      console.warn("Subscription not available in dev/guest mode");
+      throw new Error("Subscription not available in dev mode");
+    },
+    createPortalSession: async (userId: string) => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth('/api/subscription/portal', { method: 'POST', body: JSON.stringify({}) });
+      }
+      console.warn("Subscription portal not available in dev/guest mode");
+      throw new Error("Subscription portal not available in dev mode");
+    },
+    getProfile: async (userId: string): Promise<{ tier: number; subscriptionStatus: number }> => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth('/api/user/profile');
+      }
+      // Mock for dev
+      return { tier: 0, subscriptionStatus: 0 };
+    }
   }
 };

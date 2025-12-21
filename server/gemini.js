@@ -1,10 +1,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const apiKey = process.env.GEMINI_API_KEY;
-const ai = new GoogleGenAI({ apiKey });
+const getAI = (apiKey) => {
+  const key = apiKey || process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("API_KEY not set on server");
+  return new GoogleGenAI({ apiKey: key });
+};
 
-export const analyzeMeal = async (description) => {
-  if (!apiKey) throw new Error("API_KEY not set on server");
+export const analyzeMeal = async (description, apiKey) => {
+  const ai = getAI(apiKey);
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
@@ -51,8 +54,9 @@ export const generateRecipe = async (
   targetCalories,
   lang,
   userPrompt,
+  apiKey,
 ) => {
-  if (!apiKey) throw new Error("API_KEY not set on server");
+  const ai = getAI(apiKey);
 
   const langMap = {
     en: "English",
@@ -124,8 +128,8 @@ export const generateRecipe = async (
   return JSON.parse(response.text);
 };
 
-export const generateShoppingList = async (ingredients, lang) => {
-  if (!apiKey) throw new Error("API_KEY not set on server");
+export const generateShoppingList = async (ingredients, lang, apiKey) => {
+  const ai = getAI(apiKey);
 
   const langMap = {
     en: "English",
