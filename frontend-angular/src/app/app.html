@@ -1,0 +1,63 @@
+<div class="min-h-screen pb-12 transition-colors duration-300 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+  
+  <header *ngIf="user()" class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 transition-colors">
+    <div class="max-w-5xl mx-auto px-4 py-2 sm:py-0 sm:h-16 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
+      
+      <div class="w-full sm:w-auto flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="bg-indigo-600 text-white p-2 rounded-lg">
+            <lucide-icon [name]="icons.ChefHat" [size]="20" />
+          </div>
+          <h1 class="font-bold text-xl text-slate-800 dark:text-white tracking-tight">
+            MacroMini
+          </h1>
+        </div>
+
+        <div class="sm:hidden flex items-center gap-2">
+           <button (click)="toggleTheme()" class="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
+             <lucide-icon [name]="theme() === 'light' ? icons.Moon : icons.Sun" [size]="18" />
+           </button>
+           <button (click)="logout()" class="p-2 text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 rounded-lg">
+             <lucide-icon [name]="icons.LogOut" [size]="18" />
+           </button>
+        </div>
+      </div>
+
+      <div class="w-full sm:w-auto flex justify-center">
+        <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 p-1 rounded-lg w-full sm:w-auto justify-center overflow-x-auto">
+          <a routerLink="/" routerLinkActive="bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm" [routerLinkActiveOptions]="{exact: true}" class="whitespace-nowrap flex-1 sm:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+            Tracker
+          </a>
+          <a routerLink="/plans" routerLinkActive="bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm" class="whitespace-nowrap flex-1 sm:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+            Profiles
+          </a>
+          <a routerLink="/recipes" routerLinkActive="bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm" class="whitespace-nowrap flex-1 sm:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+            Recipes
+          </a>
+          <a routerLink="/shopping" routerLinkActive="bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm" class="whitespace-nowrap flex-1 sm:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+            Shopping
+          </a>
+        </div>
+      </div>
+
+      <div class="hidden sm:flex items-center border-l border-slate-200 dark:border-slate-600 pl-3 gap-2">
+        <div class="flex items-center gap-2 mr-2 py-1 px-2 rounded-lg">
+           <img [src]="user()?.avatar" class="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-600 object-cover" />
+           <span class="text-sm font-medium text-slate-700 dark:text-slate-300 hidden lg:inline">{{ user()?.name }}</span>
+        </div>
+        <button (click)="toggleTheme()" class="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
+           <lucide-icon [name]="theme() === 'light' ? icons.Moon : icons.Sun" [size]="18" />
+        </button>
+        <button (click)="logout()" class="p-2 text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 rounded-lg">
+           <lucide-icon [name]="icons.LogOut" [size]="18" />
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-8">
+    <router-outlet></router-outlet>
+  </main>
+
+</div>

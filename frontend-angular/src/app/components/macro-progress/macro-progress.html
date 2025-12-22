@@ -1,0 +1,110 @@
+<div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 transition-colors">
+  <div class="flex flex-col items-center gap-6">
+    
+    <!-- Calories Ring -->
+    <div class="relative w-24 h-24 flex-shrink-0">
+       <svg class="w-full h-full transform -rotate-90" viewBox="0 0 128 128">
+        <circle
+          cx="64"
+          cy="64"
+          r="56"
+          stroke="currentColor"
+          strokeWidth="10"
+          fill="transparent"
+          class="text-slate-200 dark:text-slate-700 transition-colors"
+        />
+        <circle
+          cx="64"
+          cy="64"
+          r="56"
+          [attr.stroke]="mainColor"
+          strokeWidth="10"
+          fill="transparent"
+          strokeDasharray="351"
+          [attr.stroke-dashoffset]="strokeDashoffset"
+          class="transition-all duration-1000 ease-out"
+          strokeLinecap="round"
+        />
+      </svg>
+      <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-700 dark:text-slate-200">
+        <span class="text-xl font-bold">{{ Math.round(current.calories) }}</span>
+        <span class="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wide">kcal</span>
+      </div>
+    </div>
+
+    <!-- Macros Bars -->
+    <div class="flex-1 w-full space-y-3">
+      
+      <!-- Protein -->
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="font-medium text-slate-700 dark:text-slate-300">{{ t['protein'] }}</span>
+          <span class="text-slate-500 dark:text-slate-400">{{ Math.round(current.protein) }} / {{ target.protein }}g</span>
+        </div>
+        <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+          <div 
+            class="h-full bg-violet-500 rounded-full transition-all duration-700"
+            [style.width.%]="calculatePercentage(current.protein, target.protein)"
+          ></div>
+        </div>
+      </div>
+
+      <!-- Carbs -->
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="font-medium text-slate-700 dark:text-slate-300">{{ t['carbs'] }}</span>
+          <span class="text-slate-500 dark:text-slate-400">{{ Math.round(current.carbs) }} / {{ target.carbs }}g</span>
+        </div>
+        <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+          <div 
+            class="h-full bg-amber-500 rounded-full transition-all duration-700"
+            [style.width.%]="calculatePercentage(current.carbs, target.carbs)"
+          ></div>
+        </div>
+      </div>
+
+      <!-- Fat -->
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="font-medium text-slate-700 dark:text-slate-300">{{ t['fat_col'] }}</span>
+          <span class="text-slate-500 dark:text-slate-400">{{ Math.round(current.fat) }} / {{ target.fat }}g</span>
+        </div>
+        <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+          <div 
+            class="h-full bg-red-500 rounded-full transition-all duration-700"
+            [style.width.%]="calculatePercentage(current.fat, target.fat)"
+          ></div>
+        </div>
+      </div>
+       
+       <!-- Fiber -->
+       <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="font-medium text-slate-700 dark:text-slate-300">{{ t['fiber'] }}</span>
+          <span class="text-slate-500 dark:text-slate-400">{{ Math.round(current.fiber) }} / {{ target.fiber }}g</span>
+        </div>
+        <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+          <div 
+            class="h-full bg-emerald-500 rounded-full transition-all duration-700"
+            [style.width.%]="calculatePercentage(current.fiber, target.fiber)"
+          ></div>
+        </div>
+      </div>
+
+      <!-- Sugar -->
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="font-medium text-slate-700 dark:text-slate-300">{{ t['sugar_col'] }}</span>
+          <span class="text-slate-500 dark:text-slate-400">{{ Math.round(current.sugar || 0) }} / {{ target.sugar || 0 }}g</span>
+        </div>
+        <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+          <div 
+            class="h-full bg-pink-500 rounded-full transition-all duration-700"
+            [style.width.%]="calculatePercentage(current.sugar || 0, target.sugar || 1)"
+          ></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
