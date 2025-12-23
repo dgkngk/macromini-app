@@ -295,6 +295,13 @@ export const api = {
       console.warn("Subscription not available in dev/guest mode");
       throw new Error("Subscription not available in dev mode");
     },
+    createCheckoutSessionOTP: async (userId: string) => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth('/api/subscription/create-checkout-session-otp', { method: 'POST', body: JSON.stringify({}) });
+      }
+      console.warn("OTP Checkout not available in dev/guest mode");
+      throw new Error("OTP Checkout not available in dev mode");
+    },
     createPortalSession: async (userId: string) => {
       if (IS_PROD && !isGuest(userId)) {
         return fetchWithAuth('/api/subscription/portal', { method: 'POST', body: JSON.stringify({}) });

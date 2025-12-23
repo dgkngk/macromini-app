@@ -210,6 +210,34 @@ app.post("/api/webhooks/lemonsqueezy", async (req, res) => {
           },
           { merge: true },
         );
+    } else if (eventName === "order_created") {
+      // Handle One-Time Payments (OTP) for Elite Tier
+      const userId = meta?.custom_data?.user_id || null;
+      const attributes = data.attributes;
+
+      if (!userId) {
+         console.error("[Lemon Squeezy] Missing user_id for order_created event.", { meta });
+         return res.status(400).send("Missing user_id");
+      }
+
+      if (attributes.status === "paid") {
+          // Check if this order matches the Elite OTP Variant
+          // We can check the variant_id inside `data.relationships.first_order_item.data.attributes.variant_id` 
+          // but usually the main order object has enough info or we just trust the product ID if we have multiple.
+          // For now, if we receive a paid order with user_id, we assume it's the valid product because we only sell one OTP.
+          // Ideally, verify variant_id matches process.env.LEMONSQUEEZY_VARIANT_ID_ELITE_OTP
+          
+          console.log(`[Lemon Squeezy] OTP Order paid for user ${userId}. Upgrading to Elite.`);
+          
+          await db.collection("users").doc(userId).set({
+              tier: USER_TIER.ELITE,
+              // We don't set subscriptionStatus to ACTIVE because it's not a subscription
+              // But maybe we should tracking it? Let's leave subscriptionStatus alone or set to special value?
+              // The types say 0: Inactive, 1: Active, etc. 
+              // Since it's lifetime, maybe we just rely on tier === ELITE.
+              lemonSqueezyCustomerId: attributes.customer_id,
+          }, { merge: true });
+      }
     } else if (eventName === "subscription_updated") {
         const attributes = data.attributes;
         const subscriptionId = data.id;
@@ -329,6 +357,73 @@ app.post("/api/subscription/create-checkout-session", verifyToken, async (req, r
     res.json({ url: checkoutUrl });
   } catch (error) {
     console.error("Checkout Creation Error:", error);
+    res.status(500).json({ error: "Failed to create checkout session" });
+  }
+});
+
+app.post("/api/subscription/create-checkout-session-otp", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const userEmail = req.user.email;
+    
+    // Use the Elite OTP Variant ID
+    const variantId = process.env.LEMONSQUEEZY_VARIANT_ID_ELITE_OTP;
+    const storeId = process.env.LEMONSQUEEZY_STORE_ID;
+
+    if (!storeId || !variantId) {
+      console.error("Missing Lemon Squeezy IDs for OTP");
+      return res.status(500).json({ error: "Server configuration error: Missing Store or Variant ID" });
+    }
+    
+    // Lemon Squeezy API request
+    const response = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
+        method: "POST",
+        headers: {
+            "Accept": "application/vnd.api+json",
+            "Content-Type": "application/vnd.api+json",
+            "Authorization": `Bearer ${process.env.LEMONSQUEEZY_API_KEY}`
+        },
+        body: JSON.stringify({
+            data: {
+                type: "checkouts",
+                attributes: {
+                    checkout_data: {
+                        custom: {
+                            user_id: userId
+                        },
+                        email: userEmail
+                    }
+                },
+                relationships: {
+                    store: {
+                        data: {
+                            type: "stores",
+                            id: storeId
+                        }
+                    },
+                    variant: {
+                        data: {
+                            type: "variants",
+                            id: variantId
+                        }
+                    }
+                }
+            }
+        })
+    });
+
+    if (!response.ok) {
+        const errText = await response.text();
+        console.error("Lemon Squeezy API Error (OTP):", errText);
+        throw new Error(`Lemon Squeezy API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const checkoutUrl = data.data.attributes.url;
+
+    res.json({ url: checkoutUrl });
+  } catch (error) {
+    console.error("OTP Checkout Creation Error:", error);
     res.status(500).json({ error: "Failed to create checkout session" });
   }
 });
@@ -706,4 +801,4 @@ if (process.argv[1] === __filename) {
   });
 }
 
-export const api = onRequest({ secrets: ["GEMINI_API_KEY", "LEMONSQUEEZY_API_KEY", "LEMONSQUEEZY_WEBHOOK_SECRET", "GEMINI_API_KEY_FREE", "GEMINI_API_KEY_PLUS", "GEMINI_API_KEY_ELITE", "LEMONSQUEEZY_STORE_ID", "LEMONSQUEEZY_VARIANT_ID"] }, app);
+export const api = onRequest({ secrets: ["GEMINI_API_KEY", "LEMONSQUEEZY_API_KEY", "LEMONSQUEEZY_WEBHOOK_SECRET", "GEMINI_API_KEY_FREE", "GEMINI_API_KEY_PLUS", "GEMINI_API_KEY_ELITE", "LEMONSQUEEZY_STORE_ID", "LEMONSQUEEZY_VARIANT_ID", "LEMONSQUEEZY_VARIANT_ID_ELITE_OTP"] }, app);

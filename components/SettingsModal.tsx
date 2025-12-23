@@ -49,6 +49,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const handleUpgradeOTP = async () => {
+    setActionLoading(true);
+    try {
+      const res = await api.subscription.createCheckoutSessionOTP(user.id);
+      if (res.url) window.location.href = res.url;
+    } catch (e) {
+      console.error("Upgrade OTP failed", e);
+      alert("Failed to start upgrade process.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleManage = async () => {
     setActionLoading(true);
     try {
@@ -168,6 +181,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <p className="text-xs text-center text-slate-400 mt-2">
                       Unlock 15 requests/hour for just {SUBSCRIPTION_PRICE_MONTHLY}/month
                     </p>
+
+                    <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+                        <p className="mb-2 font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                             <Shield size={16} className="text-purple-600" />
+                            Lifetime Access
+                        </p>
+                        <ul className="space-y-1 mb-4 text-purple-600 dark:text-purple-400 text-xs">
+                            <li className="flex items-center gap-2">
+                                • 100 AI Requests per hour
+                            </li>
+                            <li className="flex items-center gap-2">
+                                • One-time payment, no subscription
+                            </li>
+                        </ul>
+                        <button
+                          onClick={handleUpgradeOTP}
+                          disabled={actionLoading}
+                          className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-semibold shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                          {actionLoading ? (
+                            <Loader2 size={18} className="animate-spin" />
+                          ) : (
+                            <>
+                              <Shield size={18} fill="currentColor" className="text-purple-200" />
+                              Get Elite Lifetime
+                            </>
+                          )}
+                        </button>
+                     </div>
                   </div>
                 )}
 
@@ -191,6 +233,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     >
                       {actionLoading ? "Loading..." : "Manage Subscription"}
                     </button>
+
+                    <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+                        <p className="mb-2 font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                            <Shield size={16} className="text-purple-600" />
+                            Upgrade to Elite
+                        </p>
+                        <p className="mb-4 text-slate-500 dark:text-slate-400 text-xs">
+                            Switch to Lifetime Elite for higher limits.
+                        </p>
+                         <button
+                          onClick={handleUpgradeOTP}
+                          disabled={actionLoading}
+                          className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-semibold shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                          {actionLoading ? (
+                            <Loader2 size={18} className="animate-spin" />
+                          ) : (
+                            <>
+                              <Shield size={18} fill="currentColor" className="text-purple-200" />
+                              Get Elite Lifetime
+                            </>
+                          )}
+                        </button>
+                    </div>
                   </div>
                 )}
 
