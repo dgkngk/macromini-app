@@ -16,8 +16,10 @@ const loadState = (): RateLimitState => {
     if (stored) {
       const parsed = JSON.parse(stored);
       if (Date.now() > parsed.resetTime) {
-        const newResetTime = Date.now() + 1000; // Set a new future reset time
-        return { ...parsed, remaining: parsed.limit, resetTime: newResetTime };
+        // Stored window has expired; reset remaining to the limit and
+        // use the current time as the new resetTime. A precise future
+        // reset will be set when fresh headers are received.
+        return { ...parsed, remaining: parsed.limit, resetTime: Date.now() };
       }
       return parsed;
     }

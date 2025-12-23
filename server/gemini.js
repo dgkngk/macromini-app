@@ -1,9 +1,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
+// Cache GoogleGenAI instances per API key to avoid repeated initialization overhead.
+const aiClientCache = new Map();
+
 const getAI = (apiKey) => {
   const key = apiKey || process.env.GEMINI_API_KEY;
   if (!key) throw new Error("API_KEY not set on server");
-  return new GoogleGenAI({ apiKey: key });
+
+  if (aiClientCache.has(key)) {
+    return aiClientCache.get(key);
+  }
+
+  const client = new GoogleGenAI({ apiKey: key });
+  aiClientCache.set(key, client);
+  return client;
 };
 
 export const analyzeMeal = async (description, apiKey) => {

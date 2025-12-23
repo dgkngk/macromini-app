@@ -210,7 +210,6 @@ app.post("/api/webhooks/lemonsqueezy", async (req, res) => {
           },
           { merge: true },
         );
-      }
     } else if (eventName === "subscription_updated") {
         const attributes = data.attributes;
         const subscriptionId = data.id;
@@ -232,8 +231,7 @@ app.post("/api/webhooks/lemonsqueezy", async (req, res) => {
                 tier = USER_TIER.PLUS;
             } else if (statusStr === "past_due") {
                 status = SUBSCRIPTION_STATUS.PAST_DUE;
-                // Business rule: when a subscription is past_due, immediately revoke PLUS benefits
-                // and revert the user to the FREE tier until payment is successfully collected.
+                // Map past_due subscriptions to FREE tier; see subscription_feature_plan.md for details.
                 tier = USER_TIER.FREE;
             } else if (statusStr === "on_trial") {
                 status = SUBSCRIPTION_STATUS.TRIALING;
@@ -276,6 +274,11 @@ app.post("/api/subscription/create-checkout-session", verifyToken, async (req, r
   try {
     const userId = req.user.uid;
     const userEmail = req.user.email;
+    
+    if (!process.env.LEMONSQUEEZY_STORE_ID || !process.env.LEMONSQUEEZY_VARIANT_ID) {
+      console.error("Missing Lemon Squeezy IDs");
+      return res.status(500).json({ error: "Server configuration error: Missing Store or Variant ID" });
+    }
     
     // Lemon Squeezy API request
     const response = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
@@ -663,14 +666,26 @@ app.get("/api/data/settings/activePlan", verifyToken, async (req, res) => {
 app.post("/api/data/settings/activePlan", verifyToken, async (req, res) => {
   try {
     const { planId } = req.body;
-    const encodedPayload = { data: encodeData({ activePlanId: planId }) };
+    
+    const docRef = db.collection("users").doc(req.user.uid).collection("settings").doc("general");
+    const doc = await docRef.get();
+    
+    let currentSettings = {};
+    if (doc.exists) {
+      const d = doc.data();
+      if (d.data) {
+        currentSettings = decodeData(d.data);
+      } else {
+        // Handle legacy unencoded data if any, though we primarily use data blob now
+        currentSettings = { ...d };
+        delete currentSettings.data; // Don't include the blob itself if we mixed them
+      }
+    }
 
-    await db
-      .collection("users")
-      .doc(req.user.uid)
-      .collection("settings")
-      .doc("general")
-      .set(encodedPayload, { merge: true }); 
+    const updatedSettings = { ...currentSettings, activePlanId: planId };
+    const encodedPayload = { data: encodeData(updatedSettings) };
+
+    await docRef.set(encodedPayload, { merge: true }); 
 
     res.json({ success: true });
   } catch (e) {
@@ -691,4 +706,4 @@ if (process.argv[1] === __filename) {
   });
 }
 
-export const api = onRequest({ secrets: ["GEMINI_API_KEY", "LEMONSQUEEZY_API_KEY", "LEMONSQUEEZY_WEBHOOK_SECRET", "GEMINI_API_KEY_FREE", "GEMINI_API_KEY_PLUS", "GEMINI_API_KEY_ELITE"] }, app);
+export const api = onRequest({ secrets: ["GEMINI_API_KEY", "LEMONSQUEEZY_API_KEY", "LEMONSQUEEZY_WEBHOOK_SECRET", "GEMINI_API_KEY_FREE", "GEMINI_API_KEY_PLUS", "GEMINI_API_KEY_ELITE", "LEMONSQUEEZY_STORE_ID", "LEMONSQUEEZY_VARIANT_ID"] }, app);

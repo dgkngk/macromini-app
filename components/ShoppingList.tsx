@@ -115,10 +115,7 @@ export const ShoppingList: React.FC<ShoppingListProps> = ({
                     <span className={`text-slate-700 dark:text-slate-200 transition-all ${
                       item.completed ? 'line-through text-slate-400 dark:text-slate-500' : ''
                     }`}>
-                      <span className="text-xs font-bold text-slate-400 uppercase">
-                        {parsed.quantity} {parsed.unit}
-                      </span>
-                      <span className="ml-1">{parsed.name}</span>
+                      {parsed.name}
                     </span>
                   </div>
                 </div>
@@ -133,7 +130,9 @@ export const ShoppingList: React.FC<ShoppingListProps> = ({
                   </button>
 
                   {/* Quantity Display/Input */}
-                  <span className="font-semibold w-8 text-center text-sm">{parsed.quantity}</span>
+                  <span className="font-semibold text-center text-sm min-w-[2rem] px-1 whitespace-nowrap">
+                    {parsed.quantity} {parsed.unit}
+                  </span>
 
                   {/* Increase */}
                   <button 
