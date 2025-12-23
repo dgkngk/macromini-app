@@ -16,10 +16,15 @@ export const LimitReachedModal: React.FC<LimitReachedModalProps> = ({ onClose, u
     setLoading(true);
     try {
       const res = await api.subscription.createCheckoutSession(user.id);
-      if (res.url) window.location.href = res.url;
+      if (res.url) {
+        window.location.href = res.url;
+      } else {
+        alert("Failed to start upgrade.");
+      }
     } catch (e) {
       console.error("Upgrade failed", e);
       alert("Failed to start upgrade.");
+    } finally {
       setLoading(false);
     }
   };

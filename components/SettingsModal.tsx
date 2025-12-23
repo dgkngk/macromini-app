@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { User, UserTier } from "../types";
 import { X, User as UserIcon, CreditCard, Star, Shield, Loader2, Zap } from "lucide-react";
 import { api } from "../services/api";
+import { SUBSCRIPTION_PRICE_MONTHLY } from "../constants";
 
 interface SettingsModalProps {
   user: User;
@@ -103,7 +104,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <div className="p-6">
           <div className="flex items-center gap-4 mb-6">
             <img
-              src={user.avatar || ""}
+              src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "User")}`}
               alt={user.name || "User"}
               className="w-16 h-16 rounded-full border-2 border-white dark:border-slate-700 shadow-md"
             />
@@ -165,7 +166,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       )}
                     </button>
                     <p className="text-xs text-center text-slate-400 mt-2">
-                      Unlock 15 requests/hour for just $X/month
+                      Unlock 15 requests/hour for just {SUBSCRIPTION_PRICE_MONTHLY}/month
                     </p>
                   </div>
                 )}

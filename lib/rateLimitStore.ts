@@ -16,7 +16,8 @@ const loadState = (): RateLimitState => {
     if (stored) {
       const parsed = JSON.parse(stored);
       if (Date.now() > parsed.resetTime) {
-        return { ...parsed, remaining: parsed.limit };
+        const newResetTime = Date.now() + 1000; // Set a new future reset time
+        return { ...parsed, remaining: parsed.limit, resetTime: newResetTime };
       }
       return parsed;
     }

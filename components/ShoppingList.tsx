@@ -91,8 +91,7 @@ export const ShoppingList: React.FC<ShoppingListProps> = ({
 
               const handleQuantityChange = (delta: number) => {
                 const step = getIncrementStep(parsed.unit);
-                const newQty = Math.max(0, parsed.quantity + (delta * step));
-                if (newQty === 0) return; // Prevent 0 items?
+                const newQty = Math.max(1, parsed.quantity + (delta * step));
                 
                 const newText = formatIngredient({ ...parsed, quantity: newQty });
                 onUpdate(item.id, { text: newText });
@@ -116,7 +115,9 @@ export const ShoppingList: React.FC<ShoppingListProps> = ({
                     <span className={`text-slate-700 dark:text-slate-200 transition-all ${
                       item.completed ? 'line-through text-slate-400 dark:text-slate-500' : ''
                     }`}>
-                      <span className="text-xs font-bold text-slate-400 uppercase">{parsed.unit}</span>
+                      <span className="text-xs font-bold text-slate-400 uppercase">
+                        {parsed.quantity} {parsed.unit}
+                      </span>
                       <span className="ml-1">{parsed.name}</span>
                     </span>
                   </div>

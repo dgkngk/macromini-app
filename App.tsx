@@ -367,7 +367,6 @@ const App: React.FC = () => {
     // You might want to show a global loading indicator here if you wish,
     // but usually component-level loading (Phase 3) is better.
     const aiIngredients = await generateShoppingList(ingredients, language);
-    console.log(aiIngredients);
 
     // 2. Merge using existing logic
     const newList = mergeShoppingList(shoppingList, aiIngredients);
@@ -526,12 +525,11 @@ const App: React.FC = () => {
               onClick={() => setShowSettings(true)}
               className="p-1 rounded-full border border-slate-200 dark:border-slate-700"
             >
-              <img
-                src={user.avatar}
-                alt="Profile"
-                className="w-7 h-7 rounded-full object-cover"
-              />
-            </button>
+                          <img
+                            src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "User")}`}
+                            alt={user.name || "Profile"}
+                            className="w-7 h-7 rounded-full object-cover"
+                          />            </button>
             <LanguageSelector />
             <button
               onClick={toggleTheme}
@@ -602,8 +600,8 @@ const App: React.FC = () => {
             className="flex items-center gap-2 mr-2 hover:bg-slate-100 dark:hover:bg-slate-700 py-1 px-2 rounded-lg transition-colors"
           >
             <img
-              src={user.avatar}
-              alt={user.name}
+              src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "User")}`}
+              alt={user.name || "Profile"}
               className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-600 object-cover"
             />
             <span className="text-sm font-medium text-slate-700 dark:text-slate-300 hidden lg:inline">

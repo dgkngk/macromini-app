@@ -56,7 +56,24 @@ const encodeData = (obj) => {
 };
 
 const decodeData = (base64Str) => {
-  return JSON.parse(Buffer.from(base64Str, "base64").toString("utf-8"));
+  if (typeof base64Str !== "string") {
+    throw new TypeError("Expected base64-encoded string");
+  }
+
+  try {
+    const jsonStr = Buffer.from(base64Str, "base64").toString("utf-8");
+    const data = JSON.parse(jsonStr);
+
+    // Basic structural validation: expect a non-null object (not an array)
+    if (data === null || typeof data !== "object" || Array.isArray(data)) {
+      throw new Error("Decoded data has invalid structure");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Failed to decode base64 JSON data:", error);
+    throw new Error("Invalid encoded data");
+  }
 };
 
 // --- Middleware: Verify Firebase Auth Token ---
@@ -172,13 +189,20 @@ app.post("/api/webhooks/lemonsqueezy", async (req, res) => {
     console.log(`[Lemon Squeezy] Event received: ${eventName}`);
 
     if (eventName === "subscription_created") {
-      const userId = meta.custom_data ? meta.custom_data.user_id : null;
+      const userId = meta?.custom_data?.user_id || null;
       const attributes = data.attributes;
       
-      if (userId) {
-        console.log(`[Lemon Squeezy] Subscription created for user ${userId}`);
-        await db.collection("users").doc(userId).set(
-          {
+      if (!userId) {
+        console.error(
+          "[Lemon Squeezy] Missing user_id in meta.custom_data for subscription_created event.",
+          { meta }
+        );
+        return res.status(400).send("Missing user_id in webhook payload");
+      }
+
+      console.log(`[Lemon Squeezy] Subscription created for user ${userId}`);
+      await db.collection("users").doc(userId).set(
+        {
             tier: USER_TIER.PLUS,
             subscriptionStatus: SUBSCRIPTION_STATUS.ACTIVE,
             lemonSqueezyCustomerId: attributes.customer_id,
@@ -208,7 +232,9 @@ app.post("/api/webhooks/lemonsqueezy", async (req, res) => {
                 tier = USER_TIER.PLUS;
             } else if (statusStr === "past_due") {
                 status = SUBSCRIPTION_STATUS.PAST_DUE;
-                tier = USER_TIER.FREE; // Or keep as PLUS but limit access? Usually demote or warn.
+                // Business rule: when a subscription is past_due, immediately revoke PLUS benefits
+                // and revert the user to the FREE tier until payment is successfully collected.
+                tier = USER_TIER.FREE;
             } else if (statusStr === "on_trial") {
                 status = SUBSCRIPTION_STATUS.TRIALING;
                 tier = USER_TIER.PLUS;
@@ -644,7 +670,7 @@ app.post("/api/data/settings/activePlan", verifyToken, async (req, res) => {
       .doc(req.user.uid)
       .collection("settings")
       .doc("general")
-      .set(encodedPayload); 
+      .set(encodedPayload, { merge: true }); 
 
     res.json({ success: true });
   } catch (e) {

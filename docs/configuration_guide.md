@@ -74,7 +74,7 @@ firebase functions:secrets:set LEMONSQUEEZY_WEBHOOK_SECRET
 
 In `server/index.js`, update the `secrets` list if you added new ones:
 ```javascript
-export const api = onRequest({ secrets: ["GEMINI_API_KEY", "LEMONSQUEEZY_API_KEY", "LEMONSQUEEZY_WEBHOOK_SECRET", ...] }, app);
+export const api = onRequest({ secrets: ["GEMINI_API_KEY", "LEMONSQUEEZY_API_KEY", "LEMONSQUEEZY_WEBHOOK_SECRET", "GEMINI_API_KEY_FREE", "GEMINI_API_KEY_PLUS", "GEMINI_API_KEY_ELITE"] }, app);
 ```
 
 ## 3. "Elite" Tier Setup (Manual)

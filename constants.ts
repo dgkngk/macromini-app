@@ -1,5 +1,7 @@
 import { DietPlan, Language } from './types';
 
+export const SUBSCRIPTION_PRICE_MONTHLY = '$9.99';
+
 export const DEFAULT_PLANS: DietPlan[] = [
   {
     id: 'plan-1',
