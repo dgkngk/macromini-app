@@ -3,6 +3,7 @@ import { User, UserTier } from "../types";
 import { X, User as UserIcon, CreditCard, Star, Shield, Loader2, Zap } from "lucide-react";
 import { api } from "../services/api";
 import { SUBSCRIPTION_PRICE_MONTHLY } from "../constants";
+import { useToast } from "./Toast";
 
 interface SettingsModalProps {
   user: User;
@@ -21,6 +22,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const { addToast } = useToast();
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -43,7 +45,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       if (res.url) window.location.href = res.url;
     } catch (e) {
       console.error("Upgrade failed", e);
-      alert("Failed to start upgrade process.");
+      addToast("Failed to start upgrade process.", "error");
     } finally {
       setActionLoading(false);
     }
@@ -56,7 +58,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       if (res.url) window.location.href = res.url;
     } catch (e) {
       console.error("Upgrade OTP failed", e);
-      alert("Failed to start upgrade process.");
+      addToast("Failed to start upgrade process.", "error");
     } finally {
       setActionLoading(false);
     }
@@ -69,7 +71,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       if (res.url) window.location.href = res.url;
     } catch (e) {
       console.error("Portal failed", e);
-      alert("Failed to open billing portal.");
+      addToast("Failed to open billing portal.", "error");
     } finally {
       setActionLoading(false);
     }

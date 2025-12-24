@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { X, Zap, Loader2, Clock } from "lucide-react";
 import { api } from "../services/api";
 import { User } from "../types";
+import { useToast } from "./Toast";
 
 interface LimitReachedModalProps {
   onClose: () => void;
@@ -10,6 +11,7 @@ interface LimitReachedModalProps {
 
 export const LimitReachedModal: React.FC<LimitReachedModalProps> = ({ onClose, user }) => {
   const [loading, setLoading] = useState(false);
+  const { addToast } = useToast();
 
   const handleUpgrade = async () => {
     if (!user) return;
@@ -19,11 +21,11 @@ export const LimitReachedModal: React.FC<LimitReachedModalProps> = ({ onClose, u
       if (res.url) {
         window.location.href = res.url;
       } else {
-        alert("Failed to start upgrade.");
+        addToast("Failed to start upgrade.", "error");
       }
     } catch (e) {
       console.error("Upgrade failed", e);
-      alert("Failed to start upgrade.");
+      addToast("Failed to start upgrade.", "error");
     } finally {
       setLoading(false);
     }

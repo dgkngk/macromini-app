@@ -25,6 +25,7 @@ import { RateLimitProgressBar } from "./components/RateLimitProgressBar";
 import { Auth } from "./components/Auth";
 import { SettingsModal } from "./components/SettingsModal";
 import { LimitReachedModal } from "./components/LimitReachedModal";
+import { ToastProvider } from "./components/Toast";
 import { mergeShoppingList } from "./services/shoppingUtils";
 import {
   Users,
@@ -818,6 +819,7 @@ const App: React.FC = () => {
   );
 
   return (
+    <ToastProvider>
     <div className="min-h-screen pb-12 transition-colors duration-300">
       {renderHeader()}
 
@@ -891,6 +893,7 @@ const App: React.FC = () => {
         />
       )}
     </div>
+    </ToastProvider>
   );
 };
 
