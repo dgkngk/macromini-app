@@ -64,8 +64,8 @@ const decodeData = (base64Str) => {
     const jsonStr = Buffer.from(base64Str, "base64").toString("utf-8");
     const data = JSON.parse(jsonStr);
 
-    // Basic structural validation: expect a non-null object (not an array)
-    if (data === null || typeof data !== "object" || Array.isArray(data)) {
+    // Basic structural validation: expect a non-null object
+    if (data === null || typeof data !== "object") {
       throw new Error("Decoded data has invalid structure");
     }
 
