@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import path from "path";
 import { fileURLToPath } from "url";
 import "dotenv/config";
@@ -21,6 +22,7 @@ const PORT = process.env.PORT || 8080;
 
 app.set("trust proxy", 1); // Trust proxy for rate limiter
 
+app.use(helmet());
 app.use(cors());
 
 // Capture raw body for Lemon Squeezy webhook signature verification
