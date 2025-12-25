@@ -158,7 +158,9 @@ const EN_TRANSLATIONS = {
     logout: 'Log Out',
     auth_error: 'Invalid credentials. Please try again.',
     auth_exists: 'User already exists.',
-    guest_continue: 'Continue as Guest'
+    guest_continue: 'Continue as Guest',
+    ai_usage_limit: 'AI Usage Limit',
+    usage_used: 'Used'
 };
 
 export const TRANSLATIONS: Record<Language, Record<string, string>> = {
@@ -261,7 +263,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     logout: 'Çıkış Yap',
     auth_error: 'Geçersiz bilgiler. Tekrar deneyin.',
     auth_exists: 'Kullanıcı zaten mevcut.',
-    guest_continue: 'Misafir Olarak Devam Et'
+    guest_continue: 'Misafir Olarak Devam Et',
+    ai_usage_limit: 'AI Kullanım Limiti',
+    usage_used: 'Kullanılan'
   },
   de: {
     ...EN_TRANSLATIONS,
@@ -361,7 +365,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     logout: 'Abmelden',
     auth_error: 'Ungültige Anmeldedaten.',
     auth_exists: 'Benutzer existiert bereits.',
-    guest_continue: 'Als Gast fortfahren'
+    guest_continue: 'Als Gast fortfahren',
+    ai_usage_limit: 'AI Nutzungslimit',
+    usage_used: 'Verwendet'
   },
   fr: {
     ...EN_TRANSLATIONS,
@@ -461,7 +467,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     logout: 'Déconnexion',
     auth_error: 'Identifiants invalides.',
     auth_exists: 'L\'utilisateur existe déjà.',
-    guest_continue: 'Continuer en invité'
+    guest_continue: 'Continuer en invité',
+    ai_usage_limit: 'Limite d\'utilisation IA',
+    usage_used: 'Utilisé'
   },
   nl: {
     ...EN_TRANSLATIONS,
@@ -561,7 +569,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     logout: 'Uitloggen',
     auth_error: 'Ongeldige inloggegevens.',
     auth_exists: 'Gebruiker bestaat al.',
-    guest_continue: 'Doorgaan als gast'
+    guest_continue: 'Doorgaan als gast',
+    ai_usage_limit: 'AI Gebruikslimiet',
+    usage_used: 'Gebruikt'
   },
   es: {
     ...EN_TRANSLATIONS,
@@ -661,7 +671,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     logout: 'Cerrar Sesión',
     auth_error: 'Credenciales inválidas.',
     auth_exists: 'El usuario ya existe.',
-    guest_continue: 'Continuar como Invitado'
+    guest_continue: 'Continuar como Invitado',
+    ai_usage_limit: 'Límite de Uso de IA',
+    usage_used: 'Usado'
   },
   pt: {
     ...EN_TRANSLATIONS,
@@ -761,7 +773,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     logout: 'Sair',
     auth_error: 'Credenciais inválidas.',
     auth_exists: 'Usuário já existe.',
-    guest_continue: 'Continuar como Convidado'
+    guest_continue: 'Continuar como Convidado',
+    ai_usage_limit: 'Limite de Uso de IA',
+    usage_used: 'Usado'
   },
   ru: {
     ...EN_TRANSLATIONS,
@@ -861,7 +875,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     logout: 'Выйти',
     auth_error: 'Неверные данные.',
     auth_exists: 'Пользователь уже существует.',
-    guest_continue: 'Продолжить как гость'
+    guest_continue: 'Продолжить как гость',
+    ai_usage_limit: 'Лимит ИИ',
+    usage_used: 'Использовано'
   },
   zh: {
     ...EN_TRANSLATIONS,
@@ -961,6 +977,8 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     logout: '登出',
     auth_error: '凭据无效。',
     auth_exists: '用户已存在。',
-    guest_continue: '以访客身份继续'
+    guest_continue: '以访客身份继续',
+    ai_usage_limit: 'AI 使用限制',
+    usage_used: '已用'
   }
 };

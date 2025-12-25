@@ -635,7 +635,7 @@ const App: React.FC = () => {
           </button>
         </div>
       </div>
-      <RateLimitProgressBar />
+      <RateLimitProgressBar lang={language} />
     </header>
   );
 
