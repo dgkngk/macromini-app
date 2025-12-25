@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 
 import { generateShoppingList } from "./services/geminiService";
+import { rateLimitStore } from "./lib/rateLimitStore";
 
 const App: React.FC = () => {
   // --- Auth State ---
@@ -142,8 +143,11 @@ const App: React.FC = () => {
       setSavedRecipes([]);
       setShoppingList([]);
       setActivePlanId("");
+      rateLimitStore.setUserId(null);
       return;
     }
+
+    rateLimitStore.setUserId(user.id);
 
     const loadUserData = async () => {
       setIsLoadingData(true);
@@ -154,13 +158,19 @@ const App: React.FC = () => {
           loadedRecipes,
           loadedShopping,
           activeId,
+          usageData,
         ] = await Promise.all([
           api.plans.list(user.id),
           api.meals.list(user.id),
           api.recipes.list(user.id),
           api.shopping.list(user.id),
           api.settings.getActivePlan(user.id),
+          api.user.getUsage(user.id),
         ]);
+
+        if (usageData) {
+          rateLimitStore.updateFromServer(usageData);
+        }
 
         if (loadedPlans.length === 0) {
           setPlans(DEFAULT_PLANS);

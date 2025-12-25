@@ -469,6 +469,52 @@ app.get("/api/user/profile", verifyToken, attachUserTier, async (req, res) => {
   });
 });
 
+// Get User Usage (Rate Limit)
+app.get("/api/user/usage", verifyToken, attachUserTier, async (req, res) => {
+  try {
+    const uid = req.user.uid;
+    let key, limit, windowMs;
+
+    if (req.user.tier === USER_TIER.ELITE) {
+      key = `${uid}_hourly`;
+      limit = 100;
+      windowMs = 60 * 60 * 1000;
+    } else if (req.user.tier === USER_TIER.PLUS) {
+      key = `${uid}_hourly`;
+      limit = 15;
+      windowMs = 60 * 60 * 1000;
+    } else {
+      key = `${uid}_daily`;
+      limit = 10;
+      windowMs = 24 * 60 * 60 * 1000;
+    }
+
+    const doc = await db.collection("rate_limits").doc(key).get();
+    let hits = 0;
+    let resetTime = Date.now() + windowMs;
+
+    if (doc.exists) {
+      const data = doc.data();
+      // Check if window is still valid
+      if (data.resetTime > Date.now()) {
+        hits = data.hits || 0;
+        resetTime = data.resetTime;
+      }
+    }
+
+    const remaining = Math.max(0, limit - hits);
+
+    res.json({
+      limit,
+      remaining,
+      resetTime,
+    });
+  } catch (error) {
+    console.error("Error fetching usage:", error);
+    res.status(500).json({ error: "Failed to fetch usage" });
+  }
+});
+
 // --- AI Routes ---
 
 app.post("/api/ai/analyze", verifyToken, attachUserTier, dynamicRateLimiter, async (req, res) => {

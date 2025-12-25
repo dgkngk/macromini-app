@@ -316,5 +316,15 @@ export const api = {
       // Mock for dev
       return { tier: 0, subscriptionStatus: 0 };
     }
+  },
+
+  user: {
+    getUsage: async (userId: string): Promise<{ limit: number; remaining: number; resetTime: number }> => {
+      if (IS_PROD && !isGuest(userId)) {
+        return fetchWithAuth('/api/user/usage');
+      }
+      // Mock for dev/guest (will be overridden by rateLimitStore defaults or local storage)
+      return { limit: 10, remaining: 10, resetTime: Date.now() };
+    }
   }
 };

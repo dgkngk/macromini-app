@@ -6,13 +6,14 @@ export interface RateLimitState {
   resetTime: number; // Absolute timestamp in ms
 }
 
-const STORAGE_KEY = "macromini_rate_limit";
+let currentUserId: string = "guest";
+const getStorageKey = () => `macromini_rate_limit_${currentUserId}`;
 
 const loadState = (): RateLimitState => {
   if (typeof window === "undefined")
     return { limit: 10, remaining: 10, resetTime: Date.now() };
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(getStorageKey());
     if (stored) {
       const parsed = JSON.parse(stored);
       if (Date.now() > parsed.resetTime) {
@@ -41,13 +42,28 @@ const listeners: Set<Listener> = new Set();
 
 const notify = () => {
   if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(getStorageKey(), JSON.stringify(state));
   }
   listeners.forEach((listener) => listener(state));
 };
 
 export const rateLimitStore = {
   getState: () => state,
+
+  setUserId: (userId: string | null) => {
+    const newId = userId || "guest";
+    if (currentUserId !== newId) {
+      currentUserId = newId;
+      state = loadState();
+      // We don't save immediately on load, only on update
+      listeners.forEach((listener) => listener(state));
+    }
+  },
+
+  updateFromServer: (newState: RateLimitState) => {
+    state = newState;
+    notify();
+  },
 
   update: (headers: Headers) => {
     // Express-rate-limit with standardHeaders: true
