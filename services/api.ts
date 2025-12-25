@@ -43,8 +43,6 @@ const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const getUserKey = (userId: string, key: string) => `user_${userId}_${key}`;
-const GUEST_SESSION_KEY = 'macromini_guest_session';
-const isGuest = (userId: string) => userId.startsWith('guest_');
 
 const mapFirebaseUser = (fbUser: FirebaseUser): User => ({
   id: fbUser.uid,
@@ -56,43 +54,29 @@ const mapFirebaseUser = (fbUser: FirebaseUser): User => ({
 export const api = {
   auth: {
     onAuthStateChanged: (callback: (user: User | null) => void) => {
-      const guestSession = localStorage.getItem(GUEST_SESSION_KEY);
-      if (guestSession) {
-        callback(JSON.parse(guestSession));
-      }
-
       return onAuthStateChanged(auth, (fbUser) => {
         if (fbUser) {
-          localStorage.removeItem(GUEST_SESSION_KEY);
           callback(mapFirebaseUser(fbUser));
         } else {
-          const currentGuest = localStorage.getItem(GUEST_SESSION_KEY);
-          if (currentGuest) {
-            callback(JSON.parse(currentGuest));
-          } else {
-            callback(null);
-          }
+          callback(null);
         }
       });
     },
 
     login: async (email: string, password: string): Promise<User> => {
       const result = await signInWithEmailAndPassword(auth, email, password);
-      localStorage.removeItem(GUEST_SESSION_KEY);
       return mapFirebaseUser(result.user);
     },
     
     register: async (email: string, password: string, name: string): Promise<User> => {
       const result = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(result.user, { displayName: name });
-      localStorage.removeItem(GUEST_SESSION_KEY);
       return { ...mapFirebaseUser(result.user), name };
     },
 
     loginWithGoogle: async (): Promise<User> => {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
-      localStorage.removeItem(GUEST_SESSION_KEY);
       return mapFirebaseUser(result.user);
     },
 
@@ -100,27 +84,14 @@ export const api = {
        throw new Error("Apple Sign-In requires domain verification. Please use Google or Email for Phase 2 testing.");
     },
 
-    loginAsGuest: async (): Promise<User> => {
-      await delay(500);
-      const guestUser: User = {
-        id: 'guest_user_v1',
-        email: '',
-        name: 'Guest Chef',
-        avatar: 'https://ui-avatars.com/api/?name=Guest&background=random&color=fff&background=6366f1'
-      };
-      localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(guestUser));
-      return guestUser;
-    },
-
     logout: async (): Promise<void> => {
       await signOut(auth);
-      localStorage.removeItem(GUEST_SESSION_KEY);
     }
   },
 
   plans: {
     list: async (userId: string): Promise<DietPlan[]> => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth('/api/data/plans');
       }
       // LocalStorage Fallback
@@ -131,7 +102,7 @@ export const api = {
     },
 
     save: async (userId: string, plan: DietPlan): Promise<DietPlan> => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth('/api/data/plans', {
           method: 'POST',
           body: JSON.stringify(plan)
@@ -153,7 +124,7 @@ export const api = {
     },
 
     delete: async (userId: string, planId: string): Promise<void> => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth(`/api/data/plans/${planId}`, { method: 'DELETE' });
       }
       // LocalStorage Fallback
@@ -167,7 +138,7 @@ export const api = {
 
   meals: {
     list: async (userId: string): Promise<MealEntry[]> => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth('/api/data/meals');
       }
       await delay(300);
@@ -177,7 +148,7 @@ export const api = {
     },
 
     add: async (userId: string, entry: MealEntry): Promise<MealEntry> => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth('/api/data/meals', {
           method: 'POST',
           body: JSON.stringify(entry)
@@ -192,7 +163,7 @@ export const api = {
     },
 
     delete: async (userId: string, entryId: string): Promise<void> => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth(`/api/data/meals/${entryId}`, { method: 'DELETE' });
       }
       await delay(200);
@@ -205,7 +176,7 @@ export const api = {
 
   recipes: {
     list: async (userId: string): Promise<SavedRecipe[]> => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth('/api/data/recipes');
       }
       await delay(300);
@@ -215,7 +186,7 @@ export const api = {
     },
 
     save: async (userId: string, recipe: SavedRecipe): Promise<SavedRecipe> => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth('/api/data/recipes', {
           method: 'POST',
           body: JSON.stringify(recipe)
@@ -230,7 +201,7 @@ export const api = {
     },
 
     delete: async (userId: string, recipeId: string): Promise<void> => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth(`/api/data/recipes/${recipeId}`, { method: 'DELETE' });
       }
       await delay(200);
@@ -243,7 +214,7 @@ export const api = {
 
   shopping: {
     list: async (userId: string): Promise<ShoppingItem[]> => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth('/api/data/shopping');
       }
       await delay(300);
@@ -253,7 +224,7 @@ export const api = {
     },
 
     saveAll: async (userId: string, items: ShoppingItem[]): Promise<ShoppingItem[]> => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth('/api/data/shopping', {
           method: 'POST',
           body: JSON.stringify(items)
@@ -268,7 +239,7 @@ export const api = {
   
   settings: {
     getActivePlan: async (userId: string): Promise<string | null> => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         const res = await fetchWithAuth('/api/data/settings/activePlan');
         return res.activePlanId;
       }
@@ -276,7 +247,7 @@ export const api = {
       return localStorage.getItem(key);
     },
     saveActivePlan: async (userId: string, planId: string): Promise<void> => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth('/api/data/settings/activePlan', {
           method: 'POST',
           body: JSON.stringify({ planId })
@@ -289,28 +260,28 @@ export const api = {
 
   subscription: {
     createCheckoutSession: async (userId: string) => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth('/api/subscription/create-checkout-session', { method: 'POST', body: JSON.stringify({}) });
       }
-      console.warn("Subscription not available in dev/guest mode");
+      console.warn("Subscription not available in dev mode");
       throw new Error("Subscription not available in dev mode");
     },
     createCheckoutSessionOTP: async (userId: string) => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth('/api/subscription/create-checkout-session-otp', { method: 'POST', body: JSON.stringify({}) });
       }
-      console.warn("OTP Checkout not available in dev/guest mode");
+      console.warn("OTP Checkout not available in dev mode");
       throw new Error("OTP Checkout not available in dev mode");
     },
     createPortalSession: async (userId: string) => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth('/api/subscription/portal', { method: 'POST', body: JSON.stringify({}) });
       }
-      console.warn("Subscription portal not available in dev/guest mode");
+      console.warn("Subscription portal not available in dev mode");
       throw new Error("Subscription portal not available in dev mode");
     },
     getProfile: async (userId: string): Promise<{ tier: number; subscriptionStatus: number }> => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth('/api/user/profile');
       }
       // Mock for dev
@@ -320,10 +291,10 @@ export const api = {
 
   user: {
     getUsage: async (userId: string): Promise<{ limit: number; remaining: number; resetTime: number }> => {
-      if (IS_PROD && !isGuest(userId)) {
+      if (IS_PROD) {
         return fetchWithAuth('/api/user/usage');
       }
-      // Mock for dev/guest (will be overridden by rateLimitStore defaults or local storage)
+      // Mock for dev (will be overridden by rateLimitStore defaults or local storage)
       return { limit: 10, remaining: 10, resetTime: Date.now() };
     }
   }
