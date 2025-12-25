@@ -1,8 +1,15 @@
 import React from 'react';
 import { useRateLimit } from '../lib/rateLimitStore';
+import { Language } from '../types';
+import { TRANSLATIONS } from '../constants';
 
-export const RateLimitProgressBar: React.FC = () => {
+interface RateLimitProgressBarProps {
+  lang: Language;
+}
+
+export const RateLimitProgressBar: React.FC<RateLimitProgressBarProps> = ({ lang }) => {
   const { limit, remaining } = useRateLimit();
+  const t = TRANSLATIONS[lang];
 
   // If limit is 0, avoid division by zero
   const safeLimit = limit > 0 ? limit : 1;
@@ -18,8 +25,8 @@ export const RateLimitProgressBar: React.FC = () => {
     <div className="w-full px-4 py-1 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
       <div className="max-w-md mx-auto">
         <div className="flex justify-between text-[10px] mb-1 text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
-          <span>AI Usage Limit</span>
-          <span>{used} / {limit} Used</span>
+          <span>{t.ai_usage_limit}</span>
+          <span>{used} / {limit} {t.usage_used}</span>
         </div>
         <div className="h-1 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
           <div

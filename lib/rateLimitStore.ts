@@ -20,7 +20,7 @@ const loadState = (): RateLimitState => {
         // Stored window has expired; reset remaining to the limit and
         // use the current time as the new resetTime. A precise future
         // reset will be set when fresh headers are received.
-        return { ...parsed, remaining: parsed.limit, resetTime: Date.now() };
+        return { ...parsed, remaining: parsed.limit, resetTime: Date.now() + 3600000 };
       }
       return parsed;
     }
