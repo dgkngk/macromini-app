@@ -9,7 +9,7 @@ interface ChefMiniProps {
   remainingMacros: Macros;
   onAdd: (entry: Omit<MealEntry, 'id' | 'timestamp'>) => void;
   onSave: (recipe: AiRecipeResponse) => void;
-  onAddToShoppingList: (ingredients: string[]) => void;
+  onAddToShoppingList: (ingredients: string[]) => Promise<void>;
   dateStr: string;
   lang: Language;
 }
@@ -23,21 +23,21 @@ export const ChefMini: React.FC<ChefMiniProps> = ({ plan, remainingMacros, onAdd
   const [error, setError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [addedToShopping, setAddedToShopping] = useState(false);
-  
+  const [shoppingLoading, setShoppingLoading] = useState(false);
+
   const t = TRANSLATIONS[lang];
-  
   const remainingCalories = Math.max(0, remainingMacros.calories);
   const targetCalories = Math.round((remainingCalories * sliderValue) / 100);
 
   const handleGenerate = async () => {
     if (targetCalories <= 0) return;
-    
+
     setLoading(true);
     setError(null);
     setRecipe(null);
     setIsSaved(false);
     setAddedToShopping(false);
-    
+
     try {
       const result = await generateAiRecipe(plan, remainingMacros, targetCalories, lang, userPrompt);
       setRecipe(result);
@@ -50,7 +50,7 @@ export const ChefMini: React.FC<ChefMiniProps> = ({ plan, remainingMacros, onAdd
 
   const handleAddRecipe = () => {
     if (!recipe) return;
-    
+
     onAdd({
       planId: plan.id,
       date: dateStr,
@@ -75,10 +75,16 @@ export const ChefMini: React.FC<ChefMiniProps> = ({ plan, remainingMacros, onAdd
     setIsSaved(true);
   };
 
-  const handleAddToShopping = () => {
-    if (!recipe || addedToShopping) return;
-    onAddToShoppingList(recipe.ingredients);
-    setAddedToShopping(true);
+  const handleAddToShopping = async () => {
+    if (!recipe || addedToShopping || shoppingLoading) return;
+
+    setShoppingLoading(true);
+    try {
+      await onAddToShoppingList(recipe.ingredients);
+      setAddedToShopping(true);
+    } finally {
+      setShoppingLoading(false);
+    }
   };
 
   return (
@@ -216,14 +222,14 @@ export const ChefMini: React.FC<ChefMiniProps> = ({ plan, remainingMacros, onAdd
                         </h4>
                         <button 
                           onClick={handleAddToShopping}
-                          disabled={addedToShopping}
+                          disabled={addedToShopping || shoppingLoading}
                           className={`text-xs flex items-center gap-1 px-2 py-1 rounded transition-colors ${
                             addedToShopping 
                               ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
                               : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30'
                           }`}
                         >
-                          {addedToShopping ? <Check size={12} /> : <ShoppingCart size={12} />}
+                          {shoppingLoading ? <Loader2 size={12} className="animate-spin" /> : (addedToShopping ? <Check size={12} /> : <ShoppingCart size={12} />)}
                           {addedToShopping ? t.added_to_shopping : t.add_to_shopping}
                         </button>
                       </div>

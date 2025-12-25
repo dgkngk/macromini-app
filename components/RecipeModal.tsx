@@ -1,24 +1,31 @@
 import React, { useState } from 'react';
 import { SavedRecipe, Language } from '../types';
-import { X, Clock, Flame, Plus, ShoppingCart, Check } from 'lucide-react';
+import { X, Clock, Flame, Plus, ShoppingCart, Check, Loader2 } from 'lucide-react';
 import { TRANSLATIONS } from '../constants';
 
 interface RecipeModalProps {
   recipe: SavedRecipe;
   onClose: () => void;
   onLogMeal: (recipe: SavedRecipe) => void;
-  onAddToShoppingList: (ingredients: string[]) => void;
+  onAddToShoppingList: (ingredients: string[]) => Promise<void>;
   lang: Language;
 }
 
 export const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose, onLogMeal, onAddToShoppingList, lang }) => {
   const [addedToShopping, setAddedToShopping] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const t = TRANSLATIONS[lang];
 
-  const handleAddToShopping = () => {
-    if (addedToShopping) return;
-    onAddToShoppingList(recipe.ingredients);
-    setAddedToShopping(true);
+  const handleAddToShopping = async () => {
+    if (addedToShopping || isLoading) return;
+    
+    setIsLoading(true);
+    try {
+      await onAddToShoppingList(recipe.ingredients);
+      setAddedToShopping(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -59,14 +66,14 @@ export const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose, onLog
                 </h4>
                 <button 
                   onClick={handleAddToShopping}
-                  disabled={addedToShopping}
+                  disabled={addedToShopping || isLoading}
                   className={`text-xs flex items-center gap-1 px-2 py-1 rounded transition-colors ${
                     addedToShopping 
                       ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
                       : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30'
                   }`}
                 >
-                  {addedToShopping ? <Check size={12} /> : <ShoppingCart size={12} />}
+                  {isLoading ? <Loader2 size={12} className="animate-spin" /> : (addedToShopping ? <Check size={12} /> : <ShoppingCart size={12} />)}
                   {addedToShopping ? t.added_to_shopping : t.add_to_shopping}
                 </button>
               </div>

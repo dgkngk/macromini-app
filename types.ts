@@ -52,11 +52,17 @@ export interface ShoppingItem {
   completed: boolean;
 }
 
+export type UserTier = 0 | 1 | 2; // 0: Free, 1: Plus, 2: Elite
+
 export interface User {
   id: string;
-  email: string;
-  name: string;
-  avatar?: string;
+  email: string | null;
+  name: string | null;
+  avatar: string | null;
+  tier?: UserTier;
+  subscriptionStatus?: number; // 0: Inactive, 1: Active, 2: Past Due, 3: Trialing
+  lemonSqueezyCustomerId?: string;
+  subscriptionId?: string;
 }
 
 export enum Tab {

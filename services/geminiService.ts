@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import { auth } from "../lib/firebase";
 import {
   AiAnalysisResponse,
   AiRecipeResponse,
@@ -6,6 +7,7 @@ import {
   Macros,
   Language,
 } from "../types";
+import { rateLimitStore } from "../lib/rateLimitStore";
 
 // Determine if we should use Backend API or Client-Side Key
 // Fix: Property 'env' does not exist on type 'ImportMeta'
@@ -18,17 +20,38 @@ if (!USE_BACKEND && apiKey) {
   ai = new GoogleGenAI({ apiKey });
 }
 
+// Helper: Get Auth Token
+const getAuthToken = async () => {
+  const user = auth.currentUser;
+  if (!user) return null;
+  return await user.getIdToken();
+};
+
 export const analyzeMeal = async (
   description: string,
 ): Promise<AiAnalysisResponse> => {
   // 1. Production Mode: Use Backend
   if (USE_BACKEND) {
     try {
+      const token = await getAuthToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch("/api/ai/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ description }),
       });
+      rateLimitStore.update(res.headers);
+      if (res.status === 429) {
+        if (typeof window !== "undefined")
+          window.dispatchEvent(new Event("limit-reached"));
+        throw new Error("Rate limit reached");
+      }
       if (!res.ok) throw new Error("Backend analysis failed");
       return await res.json();
     } catch (e) {
@@ -106,9 +129,17 @@ export const generateAiRecipe = async (
   // 1. Production Mode: Use Backend
   if (USE_BACKEND) {
     try {
+      const token = await getAuthToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch("/api/ai/recipe", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           plan,
           remainingMacros,
@@ -117,6 +148,12 @@ export const generateAiRecipe = async (
           userPrompt,
         }),
       });
+      rateLimitStore.update(res.headers);
+      if (res.status === 429) {
+        if (typeof window !== "undefined")
+          window.dispatchEvent(new Event("limit-reached"));
+        throw new Error("Rate limit reached");
+      }
       if (!res.ok) throw new Error("Backend recipe generation failed");
       return await res.json();
     } catch (e) {
@@ -219,7 +256,93 @@ export const generateAiRecipe = async (
 
     return JSON.parse(text) as AiRecipeResponse;
   } catch (error) {
-    console.error("Error generating recipe:", error);
     throw error;
+  }
+};
+
+export const generateShoppingList = async (
+  ingredients: string[],
+  lang: Language,
+): Promise<string[]> => {
+  // 1. Production Mode Check (same as others)
+  if (USE_BACKEND) {
+    try {
+      const token = await getAuthToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const res = await fetch("/api/ai/shopping", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ ingredients, lang }),
+      });
+      rateLimitStore.update(res.headers);
+      if (res.status === 429) {
+        if (typeof window !== "undefined")
+          window.dispatchEvent(new Event("limit-reached"));
+        throw new Error("Rate limit reached");
+      }
+      if (!res.ok) throw new Error("Backend shopping list generation failed");
+      return await res.json();
+    } catch (e) {
+      console.error("Backend error", e);
+    }
+  }
+
+  // 2. Client Fallback
+  if (!ai) {
+    if (!apiKey) throw new Error("API Key missing");
+    ai = new GoogleGenAI({ apiKey });
+  }
+
+  const langMap: Record<Language, string> = {
+    en: "English",
+    tr: "Turkish",
+    de: "German",
+    fr: "French",
+    nl: "Dutch",
+    es: "Spanish",
+    pt: "Portuguese",
+    ru: "Russian",
+    zh: "Chinese",
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: `
+        You are a smart kitchen assistant.
+        Convert the following recipe ingredients into a consolidated shopping list.
+
+        Ingredients:
+        ${JSON.stringify(ingredients)}
+
+        Instructions:
+        1. Output ONLY a JSON array of strings.
+        2. Combine duplicates (e.g. "2 eggs" and "1 egg" -> "3 eggs").
+        3. Standardize units and translate them to the target language (e.g. for Turkish use 'g', 'ml', 'yk', 'sb').
+        4. Translate BOTH the ingredient names AND the units to ${langMap[lang] || "English"}.
+        5. Remove pantry staples like "water" or "ice" if they are obvious.
+        6. Format as: "Quantity Unit Item" (fully localized string).
+      `,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING },
+        },
+      },
+    });
+
+    const text = response.text;
+    if (!text) return ingredients; // Fallback to original if AI fails
+    return JSON.parse(text) as string[];
+  } catch (error) {
+    console.error("AI Shopping List Error", error);
+    return ingredients; // Fallback
   }
 };

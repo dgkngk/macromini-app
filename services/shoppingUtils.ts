@@ -1,10 +1,36 @@
 import { ShoppingItem } from "../types";
 
-interface ParsedIngredient {
+export interface ParsedIngredient {
   quantity: number;
   unit: string;
   name: string;
 }
+
+export const formatIngredient = (parsed: ParsedIngredient): string => {
+  const qDisplay = Number.isInteger(parsed.quantity) 
+    ? parsed.quantity.toString() 
+    : parsed.quantity.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1'); // clean decimals
+  
+  const unitDisplay = parsed.unit ? ` ${parsed.unit}` : '';
+  return `${qDisplay}${unitDisplay} ${parsed.name}`;
+};
+
+export const getIncrementStep = (unit: string): number => {
+  switch (unit.toLowerCase()) {
+    case 'g':
+    case 'ml':
+      return 50;
+    case 'kg':
+    case 'l':
+      return 0.5;
+    case 'lb':
+      return 0.25;
+    case 'oz':
+      return 1;
+    default:
+      return 1;
+  }
+};
 
 const UNIT_MAP: Record<string, string> = {
   'cups': 'cup', 'cup': 'cup', 'c': 'cup',

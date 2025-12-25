@@ -21,7 +21,11 @@ import { PlanEditor } from "./components/PlanEditor";
 import { RecipeModal } from "./components/RecipeModal";
 import { ShoppingList } from "./components/ShoppingList";
 import { ConfirmModal } from "./components/ConfirmModal";
+import { RateLimitProgressBar } from "./components/RateLimitProgressBar";
 import { Auth } from "./components/Auth";
+import { SettingsModal } from "./components/SettingsModal";
+import { LimitReachedModal } from "./components/LimitReachedModal";
+import { ToastProvider } from "./components/Toast";
 import { mergeShoppingList } from "./services/shoppingUtils";
 import {
   Users,
@@ -38,6 +42,9 @@ import {
   LogOut,
   Loader2,
 } from "lucide-react";
+
+import { generateShoppingList } from "./services/geminiService";
+import { rateLimitStore } from "./lib/rateLimitStore";
 
 const App: React.FC = () => {
   // --- Auth State ---
@@ -66,8 +73,19 @@ const App: React.FC = () => {
     id: string;
   } | null>(null);
 
+  // Settings & Modals
+  const [showSettings, setShowSettings] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+
   // Settings
   const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  // Listen for Global Limit Reached Event
+  useEffect(() => {
+    const handleLimitReached = () => setShowLimitModal(true);
+    window.addEventListener("limit-reached", handleLimitReached);
+    return () => window.removeEventListener("limit-reached", handleLimitReached);
+  }, []);
 
   // Add this helper function inside App component or outside
   const getInitialLanguage = (): Language => {
@@ -125,8 +143,11 @@ const App: React.FC = () => {
       setSavedRecipes([]);
       setShoppingList([]);
       setActivePlanId("");
+      rateLimitStore.setUserId(null);
       return;
     }
+
+    rateLimitStore.setUserId(user.id);
 
     const loadUserData = async () => {
       setIsLoadingData(true);
@@ -137,13 +158,19 @@ const App: React.FC = () => {
           loadedRecipes,
           loadedShopping,
           activeId,
+          usageData,
         ] = await Promise.all([
           api.plans.list(user.id),
           api.meals.list(user.id),
           api.recipes.list(user.id),
           api.shopping.list(user.id),
           api.settings.getActivePlan(user.id),
+          api.user.getUsage(user.id),
         ]);
+
+        if (usageData) {
+          rateLimitStore.updateFromServer(usageData);
+        }
 
         if (loadedPlans.length === 0) {
           setPlans(DEFAULT_PLANS);
@@ -346,8 +373,14 @@ const App: React.FC = () => {
     await api.shopping.saveAll(user.id, newList);
   };
 
-  const handleAddToShoppingList = (ingredients: string[]) => {
-    const newList = mergeShoppingList(shoppingList, ingredients);
+  const handleAddToShoppingList = async (ingredients: string[]) => {
+    // 1. Get AI-cleaned list
+    // You might want to show a global loading indicator here if you wish,
+    // but usually component-level loading (Phase 3) is better.
+    const aiIngredients = await generateShoppingList(ingredients, language);
+
+    // 2. Merge using existing logic
+    const newList = mergeShoppingList(shoppingList, aiIngredients);
     updateShoppingList(newList);
   };
 
@@ -371,6 +404,17 @@ const App: React.FC = () => {
   const handleClearCompletedShopping = () => {
     const newList = shoppingList.filter((item) => !item.completed);
     updateShoppingList(newList);
+  };
+
+  const handleUpdateShoppingItem = async (
+    id: string,
+    updates: Partial<ShoppingItem>,
+  ) => {
+    const updatedList = shoppingList.map((item) =>
+      item.id === id ? { ...item, ...updates } : item,
+    );
+    setShoppingList(updatedList);
+    await api.shopping.saveAll(user?.id || "guest", updatedList);
   };
 
   // Execution Handlers
@@ -488,6 +532,15 @@ const App: React.FC = () => {
           </div>
 
           <div className="sm:hidden flex items-center gap-2">
+            <button
+              onClick={() => setShowSettings(true)}
+              className="p-1 rounded-full border border-slate-200 dark:border-slate-700"
+            >
+                          <img
+                            src={user.avatar ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name ?? "User")}`}
+                            alt={user.name ?? "Profile"}
+                            className="w-7 h-7 rounded-full object-cover"
+                          />            </button>
             <LanguageSelector />
             <button
               onClick={toggleTheme}
@@ -553,16 +606,19 @@ const App: React.FC = () => {
 
         {/* Desktop Toggles */}
         <div className="hidden sm:flex items-center border-l border-slate-200 dark:border-slate-600 pl-3 gap-2">
-          <div className="flex items-center gap-2 mr-2">
+          <button 
+            onClick={() => setShowSettings(true)}
+            className="flex items-center gap-2 mr-2 hover:bg-slate-100 dark:hover:bg-slate-700 py-1 px-2 rounded-lg transition-colors"
+          >
             <img
-              src={user.avatar}
-              alt={user.name}
+              src={user.avatar ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name ?? "User")}`}
+              alt={user.name ?? "Profile"}
               className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-600 object-cover"
             />
             <span className="text-sm font-medium text-slate-700 dark:text-slate-300 hidden lg:inline">
               {user.name}
             </span>
-          </div>
+          </button>
           <LanguageSelector />
           <button
             onClick={toggleTheme}
@@ -579,6 +635,7 @@ const App: React.FC = () => {
           </button>
         </div>
       </div>
+      <RateLimitProgressBar />
     </header>
   );
 
@@ -772,6 +829,7 @@ const App: React.FC = () => {
   );
 
   return (
+    <ToastProvider>
     <div className="min-h-screen pb-12 transition-colors duration-300">
       {renderHeader()}
 
@@ -785,6 +843,7 @@ const App: React.FC = () => {
             onAdd={handleAddShoppingItem}
             onToggle={handleToggleShoppingItem}
             onDelete={handleDeleteShoppingItem}
+            onUpdate={handleUpdateShoppingItem}
             onClearCompleted={handleClearCompletedShopping}
             lang={language}
           />
@@ -828,7 +887,23 @@ const App: React.FC = () => {
           lang={language}
         />
       )}
+
+      {showSettings && user && (
+        <SettingsModal
+          user={user}
+          onClose={() => setShowSettings(false)}
+          lang={language}
+        />
+      )}
+
+      {showLimitModal && (
+        <LimitReachedModal
+          user={user}
+          onClose={() => setShowLimitModal(false)}
+        />
+      )}
     </div>
+    </ToastProvider>
   );
 };
 

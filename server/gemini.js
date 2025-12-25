@@ -1,10 +1,23 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const apiKey = process.env.GEMINI_API_KEY;
-const ai = new GoogleGenAI({ apiKey });
+// Cache GoogleGenAI instances per API key to avoid repeated initialization overhead.
+const aiClientCache = new Map();
 
-export const analyzeMeal = async (description) => {
-  if (!apiKey) throw new Error("API_KEY not set on server");
+const getAI = (apiKey) => {
+  const key = apiKey || process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("API_KEY not set on server");
+
+  if (aiClientCache.has(key)) {
+    return aiClientCache.get(key);
+  }
+
+  const client = new GoogleGenAI({ apiKey: key });
+  aiClientCache.set(key, client);
+  return client;
+};
+
+export const analyzeMeal = async (description, apiKey) => {
+  const ai = getAI(apiKey);
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
@@ -51,8 +64,9 @@ export const generateRecipe = async (
   targetCalories,
   lang,
   userPrompt,
+  apiKey,
 ) => {
-  if (!apiKey) throw new Error("API_KEY not set on server");
+  const ai = getAI(apiKey);
 
   const langMap = {
     en: "English",
@@ -117,6 +131,50 @@ export const generateRecipe = async (
           "fiber",
           "sugar",
         ],
+      },
+    },
+  });
+
+  return JSON.parse(response.text);
+};
+
+export const generateShoppingList = async (ingredients, lang, apiKey) => {
+  const ai = getAI(apiKey);
+
+  const langMap = {
+    en: "English",
+    tr: "Turkish",
+    de: "German",
+    fr: "French",
+    nl: "Dutch",
+    es: "Spanish",
+    pt: "Portuguese",
+    ru: "Russian",
+    zh: "Chinese",
+  };
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: `
+        You are a smart kitchen assistant.
+        Convert the following recipe ingredients into a consolidated shopping list.
+
+        Ingredients:
+        ${JSON.stringify(ingredients)}
+
+        Instructions:
+        1. Output ONLY a JSON array of strings.
+        2. Combine duplicates (e.g. "2 eggs" and "1 egg" -> "3 eggs").
+        3. Standardize units and translate them to the target language (e.g. for Turkish use 'g', 'ml', 'yk', 'sb').
+        4. Translate BOTH the ingredient names AND the units to ${langMap[lang] || "English"}.
+        5. Remove pantry staples like "water" or "ice" if they are obvious.
+        6. Format as: "Quantity Unit Item" (fully localized string).
+      `,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.ARRAY,
+        items: { type: Type.STRING },
       },
     },
   });

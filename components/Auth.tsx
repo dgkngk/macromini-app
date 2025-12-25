@@ -7,7 +7,6 @@ import {
   ArrowRight,
   Loader2,
   AlertCircle,
-  ShieldOff,
   Globe,
 } from "lucide-react";
 import { TRANSLATIONS } from "../constants";
@@ -86,19 +85,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, lang, setLang }) => {
         msg = `Domain unauthorized. Please add "${window.location.hostname}" to Firebase Console > Auth > Settings > Authorized Domains`;
       }
       setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGuestLogin = async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const user = await api.auth.loginAsGuest();
-      onLogin(user);
-    } catch (err: any) {
-      setError("Failed to start guest session");
     } finally {
       setLoading(false);
     }
@@ -304,15 +290,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, lang, setLang }) => {
                 </span>
               </button>
             </div>
-
-            <button
-              onClick={handleGuestLogin}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors font-medium text-sm"
-            >
-              <ShieldOff size={16} />
-              {t.guest_continue}
-            </button>
           </div>
 
           <div className="mt-8 text-center">
