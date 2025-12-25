@@ -28,7 +28,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
-  const isGuest = user.id.startsWith("guest_");
+  const isGuest = (user as any).isGuest === true;
 
   useEffect(() => {
     if (isGuest) {
