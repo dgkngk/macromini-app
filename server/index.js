@@ -51,6 +51,8 @@ const SUBSCRIPTION_STATUS = {
 };
 
 // --- Utils: Base64 Encoding/Decoding ---
+// Base64-encode data before storing in Firestore to lightly obfuscate the raw
+// payload and keep it as a compact, transport-safe string.
 const encodeData = (obj) => {
   return Buffer.from(JSON.stringify(obj)).toString("base64");
 };
