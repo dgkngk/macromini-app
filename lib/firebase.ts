@@ -5,13 +5,13 @@ import { getAuth } from 'firebase/auth';
 // TODO: Replace the following config with your project's config object
 // You can find this in Firebase Console -> Project Settings -> General -> Your apps
 const firebaseConfig = {
-  apiKey: "AIzaSyACyxyJVQaTPKkQeFgGYd1dSESCbkyhMKY",
-  authDomain: "macromini-test.firebaseapp.com",
-  projectId: "macromini-test",
-  storageBucket: "macromini-test.firebasestorage.app",
-  messagingSenderId: "244848408760",
-  appId: "1:244848408760:web:4b94b135dac2308a875c4d",
-  measurementId: "G-QXJRRZYKMB"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase using the Modular SDK
