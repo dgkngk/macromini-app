@@ -2,8 +2,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
-// TODO: Replace the following config with your project's config object
-// You can find this in Firebase Console -> Project Settings -> General -> Your apps
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -13,6 +11,13 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
+
+// Runtime Validation
+if (!firebaseConfig.apiKey) {
+  const errorMsg = "Firebase Configuration Error: VITE_FIREBASE_API_KEY is missing. Please check your .env file or environment variables.";
+  console.error(errorMsg);
+  throw new Error(errorMsg);
+}
 
 // Initialize Firebase using the Modular SDK
 // @ts-ignore

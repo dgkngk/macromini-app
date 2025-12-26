@@ -15,27 +15,29 @@
     <style>
       body { font-family: 'Inter', sans-serif; }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "react": "https://aistudiocdn.com/react@^19.2.1",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
-    "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "vite": "https://aistudiocdn.com/vite@^7.2.6",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
-    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/",
-    "path": "https://aistudiocdn.com/path@^0.12.7",
-    "cors": "https://aistudiocdn.com/cors@^2.8.5",
-    "url": "https://aistudiocdn.com/url@^0.11.4",
-    "firebase-admin/": "https://aistudiocdn.com/firebase-admin@^13.6.0/",
-    "dotenv/": "https://aistudiocdn.com/dotenv@^17.2.3/",
-    "express": "https://aistudiocdn.com/express@^5.2.1"
-  }
-}
-</script>
+    <script>
+      window.onerror = function(message, source, lineno, colno, error) {
+        document.body.innerHTML = `
+          <div style="padding: 20px; color: red; font-family: sans-serif; background: white;">
+            <h1>Startup Error</h1>
+            <p><strong>Message:</strong> ${message}</p>
+            <p><strong>Source:</strong> ${source}:${lineno}</p>
+            <pre style="background: #eee; padding: 10px; overflow: auto;">${error ? error.stack : 'No stack trace'}</pre>
+          </div>
+        `;
+        console.error("Global Error Caught:", message, error);
+      };
+
+      window.addEventListener('unhandledrejection', function(event) {
+        document.body.innerHTML = `
+          <div style="padding: 20px; color: red; font-family: sans-serif; background: white;">
+            <h1>Unhandled Promise Rejection</h1>
+            <p><strong>Reason:</strong> ${event.reason}</p>
+          </div>
+        `;
+        console.error("Unhandled Rejection:", event.reason);
+      });
+    </script>
 </head>
   <body class="bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
     <div id="root"></div>
