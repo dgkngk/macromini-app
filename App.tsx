@@ -37,14 +37,13 @@ import {
   Clock,
   Flame,
   ChefHat,
-  ShoppingCart,
-  Globe,
   LogOut,
   Loader2,
 } from "lucide-react";
 
 import { generateShoppingList } from "./services/geminiService";
 import { rateLimitStore } from "./lib/rateLimitStore";
+import { LanguageSelector } from "./components/LanguageSelector";
 
 const App: React.FC = () => {
   // --- Auth State ---
@@ -326,9 +325,9 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteEntry = (id: string) => {
+  const handleDeleteEntry = React.useCallback((id: string) => {
     setItemToDelete({ type: "entry", id });
-  };
+  }, []);
 
   // Recipe Handlers
   const handleSaveRecipe = async (recipe: AiRecipeResponse) => {
@@ -458,47 +457,6 @@ const App: React.FC = () => {
   const toggleTheme = () =>
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
 
-  const LanguageSelector = () => {
-    const flagMapping: { [key in Language]: string } = {
-      en: "🇺🇸",
-      tr: "🇹🇷",
-      de: "🇩🇪",
-      fr: "🇫🇷",
-      nl: "🇳🇱",
-      es: "🇪🇸",
-      pt: "🇵🇹",
-      ru: "🇷🇺",
-      zh: "🇨🇳",
-    };
-
-    return (
-      <div className="relative group">
-        <button className="flex items-center gap-2 px-3 py-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg shadow-sm hover:shadow-md transition-all text-slate-600 dark:text-slate-300">
-          <Globe size={18} />
-          <span className="uppercase text-sm font-bold">{language}</span>
-        </button>
-
-        {/* Dropdown Content */}
-        <div className="absolute right-0 top-[10px] w-16 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden hidden group-hover:block focus-within:block">
-          {Object.keys(TRANSLATIONS).map((l) => (
-            <button
-              key={l}
-              onClick={() => setLanguage(l as Language)}
-              className={`w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${
-                language === l
-                  ? "text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-900/20"
-                  : "text-slate-600 dark:text-slate-300"
-              }`}
-            >
-              <span>{l.toUpperCase()}</span>
-              <span>{flagMapping[l as Language]}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
@@ -541,7 +499,7 @@ const App: React.FC = () => {
                             alt={user.name ?? "Profile"}
                             className="w-7 h-7 rounded-full object-cover"
                           />            </button>
-            <LanguageSelector />
+            <LanguageSelector language={language} setLanguage={setLanguage} />
             <button
               onClick={toggleTheme}
               className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
@@ -619,7 +577,7 @@ const App: React.FC = () => {
               {user.name}
             </span>
           </button>
-          <LanguageSelector />
+          <LanguageSelector language={language} setLanguage={setLanguage} />
           <button
             onClick={toggleTheme}
             className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
