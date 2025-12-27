@@ -15,27 +15,74 @@
     <style>
       body { font-family: 'Inter', sans-serif; }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "react": "https://aistudiocdn.com/react@^19.2.1",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
-    "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "vite": "https://aistudiocdn.com/vite@^7.2.6",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
-    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/",
-    "path": "https://aistudiocdn.com/path@^0.12.7",
-    "cors": "https://aistudiocdn.com/cors@^2.8.5",
-    "url": "https://aistudiocdn.com/url@^0.11.4",
-    "firebase-admin/": "https://aistudiocdn.com/firebase-admin@^13.6.0/",
-    "dotenv/": "https://aistudiocdn.com/dotenv@^17.2.3/",
-    "express": "https://aistudiocdn.com/express@^5.2.1"
-  }
-}
-</script>
+    <script>
+      window.onerror = function(message, source, lineno, colno, error) {
+        // Clear existing body content
+        document.body.innerHTML = '';
+
+        var container = document.createElement('div');
+        container.style.padding = '20px';
+        container.style.color = 'red';
+        container.style.fontFamily = 'sans-serif';
+        container.style.background = 'white';
+
+        var title = document.createElement('h1');
+        title.textContent = 'Startup Error';
+        container.appendChild(title);
+
+        var messagePara = document.createElement('p');
+        var messageStrong = document.createElement('strong');
+        messageStrong.textContent = 'Message:';
+        messagePara.appendChild(messageStrong);
+        messagePara.appendChild(document.createTextNode(' ' + String(message)));
+        container.appendChild(messagePara);
+
+        var sourcePara = document.createElement('p');
+        var sourceStrong = document.createElement('strong');
+        sourceStrong.textContent = 'Source:';
+        sourcePara.appendChild(sourceStrong);
+        sourcePara.appendChild(
+          document.createTextNode(' ' + String(source) + ':' + String(lineno))
+        );
+        container.appendChild(sourcePara);
+
+        var pre = document.createElement('pre');
+        pre.style.background = '#eee';
+        pre.style.padding = '10px';
+        pre.style.overflow = 'auto';
+        pre.textContent = error && error.stack ? String(error.stack) : 'No stack trace';
+        container.appendChild(pre);
+
+        document.body.appendChild(container);
+
+        console.error("Global Error Caught:", message, error);
+      };
+
+      window.addEventListener('unhandledrejection', function(event) {
+        // Clear existing body content
+        document.body.innerHTML = '';
+
+        var container = document.createElement('div');
+        container.style.padding = '20px';
+        container.style.color = 'red';
+        container.style.fontFamily = 'sans-serif';
+        container.style.background = 'white';
+
+        var title = document.createElement('h1');
+        title.textContent = 'Unhandled Promise Rejection';
+        container.appendChild(title);
+
+        var reasonPara = document.createElement('p');
+        var reasonStrong = document.createElement('strong');
+        reasonStrong.textContent = 'Reason:';
+        reasonPara.appendChild(reasonStrong);
+        reasonPara.appendChild(document.createTextNode(' ' + String(event.reason)));
+        container.appendChild(reasonPara);
+
+        document.body.appendChild(container);
+        console.error("Unhandled Rejection:", event.reason);
+      });
+    </script>
 </head>
   <body class="bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
     <div id="root"></div>
