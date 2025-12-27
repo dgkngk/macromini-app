@@ -1,5 +1,32 @@
 #!/bin/bash
 
+# set_secrets_from_env.sh
+# 
+# Purpose:
+#   Read key=value pairs from a dotenv-style file and set corresponding
+#   Firebase Cloud Functions secrets using the Firebase CLI.
+#
+# Usage:
+#   ./set_secrets_from_env.sh [path/to/env-file]
+#
+#   - If no argument is provided, the script defaults to using a file named
+#     ".env" in the current working directory.
+#   - If an argument is provided, it is treated as the path to the env file.
+#
+# Parameters:
+#   $1  Optional. Path to the .env file containing secrets in KEY=VALUE form.
+#
+# Behavior:
+#   - Reads the specified env file line by line.
+#   - Ignores comments (lines starting with "#") and blank lines.
+#   - Trims surrounding whitespace from keys and values.
+#   - For each non-empty KEY and VALUE, runs:
+#       firebase functions:secrets:set KEY
+#     piping VALUE to the command via stdin.
+#
+# Requirements:
+#   - Firebase CLI must be installed and authenticated for the target project.
+#
 ENV_FILE=${1:-.env}
 
 if [ ! -f "$ENV_FILE" ]; then

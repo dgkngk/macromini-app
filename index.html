@@ -17,24 +17,69 @@
     </style>
     <script>
       window.onerror = function(message, source, lineno, colno, error) {
-        document.body.innerHTML = `
-          <div style="padding: 20px; color: red; font-family: sans-serif; background: white;">
-            <h1>Startup Error</h1>
-            <p><strong>Message:</strong> ${message}</p>
-            <p><strong>Source:</strong> ${source}:${lineno}</p>
-            <pre style="background: #eee; padding: 10px; overflow: auto;">${error ? error.stack : 'No stack trace'}</pre>
-          </div>
-        `;
+        // Clear existing body content
+        document.body.innerHTML = '';
+
+        var container = document.createElement('div');
+        container.style.padding = '20px';
+        container.style.color = 'red';
+        container.style.fontFamily = 'sans-serif';
+        container.style.background = 'white';
+
+        var title = document.createElement('h1');
+        title.textContent = 'Startup Error';
+        container.appendChild(title);
+
+        var messagePara = document.createElement('p');
+        var messageStrong = document.createElement('strong');
+        messageStrong.textContent = 'Message:';
+        messagePara.appendChild(messageStrong);
+        messagePara.appendChild(document.createTextNode(' ' + String(message)));
+        container.appendChild(messagePara);
+
+        var sourcePara = document.createElement('p');
+        var sourceStrong = document.createElement('strong');
+        sourceStrong.textContent = 'Source:';
+        sourcePara.appendChild(sourceStrong);
+        sourcePara.appendChild(
+          document.createTextNode(' ' + String(source) + ':' + String(lineno))
+        );
+        container.appendChild(sourcePara);
+
+        var pre = document.createElement('pre');
+        pre.style.background = '#eee';
+        pre.style.padding = '10px';
+        pre.style.overflow = 'auto';
+        pre.textContent = error && error.stack ? String(error.stack) : 'No stack trace';
+        container.appendChild(pre);
+
+        document.body.appendChild(container);
+
         console.error("Global Error Caught:", message, error);
       };
 
       window.addEventListener('unhandledrejection', function(event) {
-        document.body.innerHTML = `
-          <div style="padding: 20px; color: red; font-family: sans-serif; background: white;">
-            <h1>Unhandled Promise Rejection</h1>
-            <p><strong>Reason:</strong> ${event.reason}</p>
-          </div>
-        `;
+        // Clear existing body content
+        document.body.innerHTML = '';
+
+        var container = document.createElement('div');
+        container.style.padding = '20px';
+        container.style.color = 'red';
+        container.style.fontFamily = 'sans-serif';
+        container.style.background = 'white';
+
+        var title = document.createElement('h1');
+        title.textContent = 'Unhandled Promise Rejection';
+        container.appendChild(title);
+
+        var reasonPara = document.createElement('p');
+        var reasonStrong = document.createElement('strong');
+        reasonStrong.textContent = 'Reason:';
+        reasonPara.appendChild(reasonStrong);
+        reasonPara.appendChild(document.createTextNode(' ' + String(event.reason)));
+        container.appendChild(reasonPara);
+
+        document.body.appendChild(container);
         console.error("Unhandled Rejection:", event.reason);
       });
     </script>
