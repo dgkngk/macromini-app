@@ -37,3 +37,7 @@
 **Learning:** Even authenticated endpoints can be abused to scrape data or cause denial of service.
 **Prevention:** Apply rate limiting middleware to all API routes, not just expensive AI ones.
 
+## 2025-02-17 - Prompt Injection Mitigation in Analyze Meal
+**Vulnerability:** The `analyzeMeal` function in `server/gemini.js` interpolated user input (`description`) directly into the prompt without sanitization, allowing for potential prompt injection attacks.
+**Learning:** Even simple "analyze this text" prompts can be manipulated if the input is not treated as a literal string.
+**Prevention:** Always use `JSON.stringify(input)` to escape quotes and control characters before inserting user input into an LLM prompt. This ensures the model interprets it as a data string, not a command.
