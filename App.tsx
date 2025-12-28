@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { format } from "date-fns";
 import {
   DietPlan,
@@ -304,31 +304,32 @@ const App: React.FC = () => {
   };
 
   // Meal Handlers
-  const handleAddEntry = async (
-    entryData: Omit<MealEntry, "id" | "timestamp">,
-  ) => {
-    if (!user) return;
-    const newEntry: MealEntry = {
-      ...entryData,
-      id: crypto.randomUUID(),
-      timestamp: Date.now(),
-    };
+  const handleAddEntry = useCallback(
+    async (entryData: Omit<MealEntry, "id" | "timestamp">) => {
+      if (!user) return;
+      const newEntry: MealEntry = {
+        ...entryData,
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+      };
 
-    // Optimistic update
-    setEntries((prev) => [newEntry, ...prev]);
+      // Optimistic update
+      setEntries((prev) => [newEntry, ...prev]);
 
-    try {
-      await api.meals.add(user.id, newEntry);
-    } catch (e) {
-      console.error("Error adding meal", e);
-      // Revert if failed
-      setEntries((prev) => prev.filter((e) => e.id !== newEntry.id));
-    }
-  };
+      try {
+        await api.meals.add(user.id, newEntry);
+      } catch (e) {
+        console.error("Error adding meal", e);
+        // Revert if failed
+        setEntries((prev) => prev.filter((e) => e.id !== newEntry.id));
+      }
+    },
+    [user],
+  );
 
-  const handleDeleteEntry = (id: string) => {
+  const handleDeleteEntry = useCallback((id: string) => {
     setItemToDelete({ type: "entry", id });
-  };
+  }, []);
 
   // Recipe Handlers
   const handleSaveRecipe = async (recipe: AiRecipeResponse) => {

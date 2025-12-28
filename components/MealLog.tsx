@@ -9,7 +9,7 @@ interface MealLogProps {
   lang: Language;
 }
 
-export const MealLog: React.FC<MealLogProps> = ({ entries, onDelete, lang }) => {
+export const MealLog: React.FC<MealLogProps> = React.memo(({ entries, onDelete, lang }) => {
   const t = TRANSLATIONS[lang];
 
   if (entries.length === 0) {
@@ -72,4 +72,4 @@ export const MealLog: React.FC<MealLogProps> = ({ entries, onDelete, lang }) => 
       </div>
     </div>
   );
-};
+});

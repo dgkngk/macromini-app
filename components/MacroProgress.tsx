@@ -9,7 +9,7 @@ interface MacroProgressProps {
   lang: Language;
 }
 
-export const MacroProgress: React.FC<MacroProgressProps> = ({ current, target, theme, lang }) => {
+export const MacroProgress: React.FC<MacroProgressProps> = React.memo(({ current, target, theme, lang }) => {
   const t = TRANSLATIONS[lang];
 
   const getThemeColor = () => {
@@ -141,4 +141,4 @@ export const MacroProgress: React.FC<MacroProgressProps> = ({ current, target, t
       </div>
     </div>
   );
-};
+});
