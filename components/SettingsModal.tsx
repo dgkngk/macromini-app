@@ -234,7 +234,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <>
               <div className="flex items-center gap-4 mb-6">
                 <img
-                  src={user.avatar ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name ?? "User")}`}
+                  src={user.avatar ?? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name ?? "User")}`}
                   alt={user.name ?? "User"}
                   className="w-16 h-16 rounded-full border-2 border-white dark:border-slate-700 shadow-md"
                 />

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # set_secrets_from_env.sh
 # 
