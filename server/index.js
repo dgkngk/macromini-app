@@ -591,7 +591,7 @@ app.post("/api/ai/shopping", verifyToken, attachUserTier, dynamicRateLimiter, as
 // --- Data Routes (Protected & Encoded) ---
 
 // Plans
-app.get("/api/data/plans", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.get("/api/data/plans", verifyToken, async (req, res) => {
   try {
     const snapshot = await db
       .collection("users")
@@ -609,7 +609,7 @@ app.get("/api/data/plans", verifyToken, dynamicRateLimiter, async (req, res) => 
   }
 });
 
-app.post("/api/data/plans", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.post("/api/data/plans", verifyToken, async (req, res) => {
   try {
     const plan = req.body;
     if (!plan.id || !isValidFirestoreId(plan.id)) {
@@ -635,7 +635,7 @@ app.post("/api/data/plans", verifyToken, dynamicRateLimiter, async (req, res) =>
   }
 });
 
-app.delete("/api/data/plans/:id", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.delete("/api/data/plans/:id", verifyToken, async (req, res) => {
   try {
     if (!isValidFirestoreId(req.params.id)) {
       return res.status(400).json({ error: "Invalid ID format" });
@@ -655,7 +655,7 @@ app.delete("/api/data/plans/:id", verifyToken, dynamicRateLimiter, async (req, r
 });
 
 // Meals
-app.get("/api/data/meals", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.get("/api/data/meals", verifyToken, async (req, res) => {
   try {
     const snapshot = await db
       .collection("users")
@@ -676,7 +676,7 @@ app.get("/api/data/meals", verifyToken, dynamicRateLimiter, async (req, res) => 
   }
 });
 
-app.post("/api/data/meals", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.post("/api/data/meals", verifyToken, async (req, res) => {
   try {
     const meal = req.body;
 
@@ -702,7 +702,7 @@ app.post("/api/data/meals", verifyToken, dynamicRateLimiter, async (req, res) =>
   }
 });
 
-app.delete("/api/data/meals/:id", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.delete("/api/data/meals/:id", verifyToken, async (req, res) => {
   try {
     if (!isValidFirestoreId(req.params.id)) {
       return res.status(400).json({ error: "Invalid ID format" });
@@ -722,7 +722,7 @@ app.delete("/api/data/meals/:id", verifyToken, dynamicRateLimiter, async (req, r
 });
 
 // Recipes
-app.get("/api/data/recipes", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.get("/api/data/recipes", verifyToken, async (req, res) => {
   try {
     const snapshot = await db
       .collection("users")
@@ -741,7 +741,7 @@ app.get("/api/data/recipes", verifyToken, dynamicRateLimiter, async (req, res) =
   }
 });
 
-app.post("/api/data/recipes", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.post("/api/data/recipes", verifyToken, async (req, res) => {
   try {
     const recipe = req.body;
     if (!recipe.id || !isValidFirestoreId(recipe.id)) {
@@ -769,7 +769,7 @@ app.post("/api/data/recipes", verifyToken, dynamicRateLimiter, async (req, res) 
   }
 });
 
-app.delete("/api/data/recipes/:id", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.delete("/api/data/recipes/:id", verifyToken, async (req, res) => {
   try {
     if (!isValidFirestoreId(req.params.id)) {
       return res.status(400).json({ error: "Invalid ID format" });
@@ -789,7 +789,7 @@ app.delete("/api/data/recipes/:id", verifyToken, dynamicRateLimiter, async (req,
 });
 
 // Shopping List
-app.get("/api/data/shopping", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.get("/api/data/shopping", verifyToken, async (req, res) => {
   try {
     const doc = await db
       .collection("users")
@@ -815,7 +815,7 @@ app.get("/api/data/shopping", verifyToken, dynamicRateLimiter, async (req, res) 
   }
 });
 
-app.post("/api/data/shopping", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.post("/api/data/shopping", verifyToken, async (req, res) => {
   try {
     const items = req.body; // Array of items
     const encodedPayload = { data: encodeData(items) };
@@ -834,7 +834,7 @@ app.post("/api/data/shopping", verifyToken, dynamicRateLimiter, async (req, res)
 });
 
 // Settings (Active Plan)
-app.get("/api/data/settings/activePlan", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.get("/api/data/settings/activePlan", verifyToken, async (req, res) => {
   try {
     const doc = await db
       .collection("users")
@@ -860,7 +860,7 @@ app.get("/api/data/settings/activePlan", verifyToken, dynamicRateLimiter, async 
   }
 });
 
-app.post("/api/data/settings/activePlan", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.post("/api/data/settings/activePlan", verifyToken, async (req, res) => {
   try {
     const { planId } = req.body;
 
