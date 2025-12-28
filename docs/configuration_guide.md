@@ -40,7 +40,29 @@ This guide details how to configure Lemon Squeezy, Firebase, and your local envi
 
 ## 2. Firebase & Environment Configuration
 
-### A. Environment Variables (`server/.env`)
+### A. Frontend Environment Variables (`.env`)
+Create a `.env` file in the root directory (where `vite.config.ts` is) with the following keys. These are required for the client-side application to connect to Firebase.
+
+**How to find these values:**
+1.  Go to the [Firebase Console](https://console.firebase.google.com/).
+2.  Select your project -> **Project settings** (gear icon).
+3.  Under **Your apps**, find your Web App.
+4.  Select the **Config** option to see the `firebaseConfig` object containing these values.
+
+**Why are these needed?**
+The frontend application (built with Vite and React) runs in the user's browser. It needs to know *which* Firebase project to talk to (e.g., to authenticate users, read database data). This configuration is passed to the Firebase SDK in `lib/firebase.ts` via `initializeApp(firebaseConfig)`. Without these values, the app cannot initialize the Firebase connection, leading to the "Firebase Configuration Error" you observed.
+
+```env
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+```
+
+### B. Server Environment Variables (`server/.env`)
 Create or update `server/.env` with the following:
 
 ```env
@@ -61,13 +83,18 @@ GEMINI_API_KEY_PLUS=AIza...
 GEMINI_API_KEY_ELITE=AIza...
 ```
 
-### B. Deploying Env Vars to Firebase Functions
+### C. Deploying Env Vars to Firebase Functions
 When deploying to Firebase, you must set these secrets:
 
 ```bash
 firebase functions:secrets:set LEMONSQUEEZY_API_KEY
 firebase functions:secrets:set LEMONSQUEEZY_WEBHOOK_SECRET
 # ... repeat for others or use .env loading if configured in firebase.json
+```
+
+To view the list of currently set secrets, use:
+```bash
+firebase functions:secrets:list
 ```
 
 *Note: The current code uses `dotenv` which loads from `.env` file locally. For Firebase Functions `onRequest`, using `secrets` array in `index.js` is best practice.*

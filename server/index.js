@@ -526,6 +526,8 @@ app.post("/api/ai/analyze", verifyToken, attachUserTier, dynamicRateLimiter, asy
     const { description } = req.body;
     if (!description)
       return res.status(400).json({ error: "Description required" });
+    if (description.length > 500)
+      return res.status(400).json({ error: "Description too long" });
     
     const apiKey = getApiKeyForUser(req.user);
     const data = await analyzeMeal(description, apiKey);
@@ -540,6 +542,10 @@ app.post("/api/ai/recipe", verifyToken, attachUserTier, dynamicRateLimiter, asyn
   try {
     const { plan, remainingMacros, targetCalories, lang, userPrompt } =
       req.body;
+
+    if (userPrompt && userPrompt.length > 500) {
+      return res.status(400).json({ error: "User prompt too long" });
+    }
     
     const apiKey = getApiKeyForUser(req.user);
     const data = await generateRecipe(
@@ -560,6 +566,10 @@ app.post("/api/ai/recipe", verifyToken, attachUserTier, dynamicRateLimiter, asyn
 app.post("/api/ai/shopping", verifyToken, attachUserTier, dynamicRateLimiter, async (req, res) => {
   try {
     const { ingredients, lang } = req.body;
+
+    if (Array.isArray(ingredients) && ingredients.length > 100) {
+      return res.status(400).json({ error: "Too many ingredients" });
+    }
     
     const apiKey = getApiKeyForUser(req.user);
     const data = await generateShoppingList(ingredients, lang, apiKey);
@@ -586,14 +596,15 @@ app.get("/api/data/plans", verifyToken, async (req, res) => {
     });
     res.json(plans);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error(e);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
 app.post("/api/data/plans", verifyToken, async (req, res) => {
   try {
     const plan = req.body;
-    console.log(`[Plans] Saving plan for user ${req.user.uid}`, plan);
+    console.log(`[Plans] Saving plan for user ${req.user.uid} with id ${plan.id}`);
 
     const encodedPayload = { data: encodeData(plan) };
 
@@ -608,7 +619,7 @@ app.post("/api/data/plans", verifyToken, async (req, res) => {
     res.json(plan);
   } catch (e) {
     console.error(`[Plans] Error saving plan:`, e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -622,7 +633,8 @@ app.delete("/api/data/plans/:id", verifyToken, async (req, res) => {
       .delete();
     res.json({ success: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error(e);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -643,7 +655,8 @@ app.get("/api/data/meals", verifyToken, async (req, res) => {
     });
     res.json(meals);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error(e);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -664,7 +677,8 @@ app.post("/api/data/meals", verifyToken, async (req, res) => {
       .set(encodedPayload);
     res.json(meal);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error(e);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -678,7 +692,8 @@ app.delete("/api/data/meals/:id", verifyToken, async (req, res) => {
       .delete();
     res.json({ success: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error(e);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -697,14 +712,15 @@ app.get("/api/data/recipes", verifyToken, async (req, res) => {
     });
     res.json(recipes);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error(e);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
 app.post("/api/data/recipes", verifyToken, async (req, res) => {
   try {
     const recipe = req.body;
-    console.log(`[Recipes] Saving recipe for user ${req.user.uid}`, recipe);
+    console.log(`[Recipes] Saving recipe for user ${req.user.uid} with id ${recipe.id}`);
 
     const encodedPayload = { data: encodeData(recipe) };
     if (recipe.savedAt) {
@@ -721,7 +737,7 @@ app.post("/api/data/recipes", verifyToken, async (req, res) => {
     res.json(recipe);
   } catch (e) {
     console.error(`[Recipes] Error saving recipe:`, e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -735,7 +751,8 @@ app.delete("/api/data/recipes/:id", verifyToken, async (req, res) => {
       .delete();
     res.json({ success: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error(e);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -761,7 +778,8 @@ app.get("/api/data/shopping", verifyToken, async (req, res) => {
       res.json([]);
     }
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error(e);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -778,7 +796,8 @@ app.post("/api/data/shopping", verifyToken, async (req, res) => {
       .set(encodedPayload);
     res.json(items);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error(e);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -804,7 +823,8 @@ app.get("/api/data/settings/activePlan", verifyToken, async (req, res) => {
       res.json({ activePlanId: null });
     }
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error(e);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -834,7 +854,8 @@ app.post("/api/data/settings/activePlan", verifyToken, async (req, res) => {
 
     res.json({ success: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error(e);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 

@@ -48,7 +48,7 @@ const mapFirebaseUser = (fbUser: FirebaseUser): User => ({
   id: fbUser.uid,
   email: fbUser.email || '',
   name: fbUser.displayName || fbUser.email?.split('@')[0] || 'User',
-  avatar: fbUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbUser.email || 'U')}&background=random`
+  avatar: fbUser.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fbUser.displayName || fbUser.email?.split('@')[0] || 'U')}`
 });
 
 export const api = {
