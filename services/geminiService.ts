@@ -14,7 +14,9 @@ import { rateLimitStore } from "../lib/rateLimitStore";
 const USE_BACKEND = (import.meta as any).env?.PROD;
 
 // Client-side fallback setup
-const apiKey = process.env.GEMINI_API_KEY || "";
+// In Vite, use import.meta.env for env vars starting with VITE_ or access them differently if replaced at build time.
+// Since this is a client file, process.env isn't automatically available unless defined/shimmed.
+const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
 let ai: GoogleGenAI | null = null;
 if (!USE_BACKEND && apiKey) {
   ai = new GoogleGenAI({ apiKey });
