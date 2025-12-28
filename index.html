@@ -16,7 +16,7 @@
       body { font-family: 'Inter', sans-serif; }
     </style>
     <script>
-      window.onerror = function(message, source, lineno, colno, error) {
+      function createErrorDisplayContainer(titleText) {
         // Clear existing body content
         document.body.innerHTML = '';
 
@@ -27,8 +27,15 @@
         container.style.background = 'white';
 
         var title = document.createElement('h1');
-        title.textContent = 'Startup Error';
+        title.textContent = titleText;
         container.appendChild(title);
+        
+        document.body.appendChild(container);
+        return container;
+      }
+
+      window.onerror = function(message, source, lineno, colno, error) {
+        var container = createErrorDisplayContainer('Startup Error');
 
         var messagePara = document.createElement('p');
         var messageStrong = document.createElement('strong');
@@ -53,24 +60,11 @@
         pre.textContent = error && error.stack ? String(error.stack) : 'No stack trace';
         container.appendChild(pre);
 
-        document.body.appendChild(container);
-
         console.error("Global Error Caught:", message, error);
       };
 
       window.addEventListener('unhandledrejection', function(event) {
-        // Clear existing body content
-        document.body.innerHTML = '';
-
-        var container = document.createElement('div');
-        container.style.padding = '20px';
-        container.style.color = 'red';
-        container.style.fontFamily = 'sans-serif';
-        container.style.background = 'white';
-
-        var title = document.createElement('h1');
-        title.textContent = 'Unhandled Promise Rejection';
-        container.appendChild(title);
+        var container = createErrorDisplayContainer('Unhandled Promise Rejection');
 
         var reasonPara = document.createElement('p');
         var reasonStrong = document.createElement('strong');
@@ -79,7 +73,6 @@
         reasonPara.appendChild(document.createTextNode(' ' + String(event.reason)));
         container.appendChild(reasonPara);
 
-        document.body.appendChild(container);
         console.error("Unhandled Rejection:", event.reason);
       });
     </script>
