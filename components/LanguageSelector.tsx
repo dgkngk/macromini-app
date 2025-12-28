@@ -8,7 +8,7 @@ interface LanguageSelectorProps {
   setLanguage: (lang: Language) => void;
 }
 
-export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ language, setLanguage }) => {
+export const LanguageSelector: React.FC<LanguageSelectorProps> = React.memo(({ language, setLanguage }) => {
   const flagMapping: { [key in Language]: string } = {
     en: "🇺🇸",
     tr: "🇹🇷",
@@ -47,4 +47,4 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ language, se
       </div>
     </div>
   );
-};
+});
