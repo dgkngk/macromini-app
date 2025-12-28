@@ -19,10 +19,13 @@ const getAI = (apiKey) => {
 export const analyzeMeal = async (description, apiKey) => {
   const ai = getAI(apiKey);
 
+  // 🛡️ Sentinel Security: Sanitize input to prevent prompt injection
+  const safeDescription = JSON.stringify(description);
+
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: `Analyze the following meal description and estimate the nutritional content. Return a JSON object.
-    Meal Description: "${description}"
+    Meal Description: ${safeDescription}
 
     If exact quantities aren't specified, estimate based on standard serving sizes.
     Be realistic. If the input is nonsense, return 0 for all values but try to name what it might be or just say "Unknown".`,
