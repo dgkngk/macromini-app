@@ -867,7 +867,7 @@ app.post("/api/data/settings/activePlan", verifyToken, dynamicRateLimiter, async
     if (planId && !isValidFirestoreId(planId)) {
       return res.status(400).json({ error: "Invalid plan ID format" });
     }
-    
+
     const docRef = db.collection("users").doc(req.user.uid).collection("settings").doc("general");
     const doc = await docRef.get();
     
