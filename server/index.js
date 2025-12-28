@@ -59,6 +59,14 @@ const encodeData = (obj) => {
   return Buffer.from(JSON.stringify(obj)).toString("base64");
 };
 
+const isValidFirestoreId = (id) => {
+  // Validate that the ID is a string, non-empty, and contains only allowed characters
+  // allowed: alphanumeric, hyphens, underscores. No slashes or dots to prevent path traversal.
+  if (typeof id !== "string") return false;
+  if (!id || id.length > 128) return false;
+  return /^[a-zA-Z0-9_-]+$/.test(id);
+};
+
 const decodeData = (base64Str) => {
   if (typeof base64Str !== "string") {
     throw new TypeError("Expected base64-encoded string");
@@ -583,7 +591,7 @@ app.post("/api/ai/shopping", verifyToken, attachUserTier, dynamicRateLimiter, as
 // --- Data Routes (Protected & Encoded) ---
 
 // Plans
-app.get("/api/data/plans", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.get("/api/data/plans", verifyToken, async (req, res) => {
   try {
     const snapshot = await db
       .collection("users")
@@ -601,9 +609,13 @@ app.get("/api/data/plans", verifyToken, dynamicRateLimiter, async (req, res) => 
   }
 });
 
-app.post("/api/data/plans", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.post("/api/data/plans", verifyToken, async (req, res) => {
   try {
     const plan = req.body;
+    if (!plan.id || !isValidFirestoreId(plan.id)) {
+      return res.status(400).json({ error: "Invalid or missing plan ID" });
+    }
+
     console.log(`[Plans] Saving plan for user ${req.user.uid} with id ${plan.id}`);
 
     const encodedPayload = { data: encodeData(plan) };
@@ -623,8 +635,12 @@ app.post("/api/data/plans", verifyToken, dynamicRateLimiter, async (req, res) =>
   }
 });
 
-app.delete("/api/data/plans/:id", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.delete("/api/data/plans/:id", verifyToken, async (req, res) => {
   try {
+    if (!isValidFirestoreId(req.params.id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
     await db
       .collection("users")
       .doc(req.user.uid)
@@ -639,7 +655,7 @@ app.delete("/api/data/plans/:id", verifyToken, dynamicRateLimiter, async (req, r
 });
 
 // Meals
-app.get("/api/data/meals", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.get("/api/data/meals", verifyToken, async (req, res) => {
   try {
     const snapshot = await db
       .collection("users")
@@ -660,9 +676,13 @@ app.get("/api/data/meals", verifyToken, dynamicRateLimiter, async (req, res) => 
   }
 });
 
-app.post("/api/data/meals", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.post("/api/data/meals", verifyToken, async (req, res) => {
   try {
     const meal = req.body;
+
+    if (!meal.id || !isValidFirestoreId(meal.id)) {
+      return res.status(400).json({ error: "Invalid or missing meal ID" });
+    }
 
     const encodedPayload = { data: encodeData(meal) };
     if (meal.timestamp) {
@@ -682,8 +702,12 @@ app.post("/api/data/meals", verifyToken, dynamicRateLimiter, async (req, res) =>
   }
 });
 
-app.delete("/api/data/meals/:id", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.delete("/api/data/meals/:id", verifyToken, async (req, res) => {
   try {
+    if (!isValidFirestoreId(req.params.id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
     await db
       .collection("users")
       .doc(req.user.uid)
@@ -698,7 +722,7 @@ app.delete("/api/data/meals/:id", verifyToken, dynamicRateLimiter, async (req, r
 });
 
 // Recipes
-app.get("/api/data/recipes", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.get("/api/data/recipes", verifyToken, async (req, res) => {
   try {
     const snapshot = await db
       .collection("users")
@@ -717,9 +741,13 @@ app.get("/api/data/recipes", verifyToken, dynamicRateLimiter, async (req, res) =
   }
 });
 
-app.post("/api/data/recipes", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.post("/api/data/recipes", verifyToken, async (req, res) => {
   try {
     const recipe = req.body;
+    if (!recipe.id || !isValidFirestoreId(recipe.id)) {
+      return res.status(400).json({ error: "Invalid or missing recipe ID" });
+    }
+
     console.log(`[Recipes] Saving recipe for user ${req.user.uid} with id ${recipe.id}`);
 
     const encodedPayload = { data: encodeData(recipe) };
@@ -741,8 +769,12 @@ app.post("/api/data/recipes", verifyToken, dynamicRateLimiter, async (req, res) 
   }
 });
 
-app.delete("/api/data/recipes/:id", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.delete("/api/data/recipes/:id", verifyToken, async (req, res) => {
   try {
+    if (!isValidFirestoreId(req.params.id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
     await db
       .collection("users")
       .doc(req.user.uid)
@@ -757,7 +789,7 @@ app.delete("/api/data/recipes/:id", verifyToken, dynamicRateLimiter, async (req,
 });
 
 // Shopping List
-app.get("/api/data/shopping", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.get("/api/data/shopping", verifyToken, async (req, res) => {
   try {
     const doc = await db
       .collection("users")
@@ -783,7 +815,7 @@ app.get("/api/data/shopping", verifyToken, dynamicRateLimiter, async (req, res) 
   }
 });
 
-app.post("/api/data/shopping", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.post("/api/data/shopping", verifyToken, async (req, res) => {
   try {
     const items = req.body; // Array of items
     const encodedPayload = { data: encodeData(items) };
@@ -802,7 +834,7 @@ app.post("/api/data/shopping", verifyToken, dynamicRateLimiter, async (req, res)
 });
 
 // Settings (Active Plan)
-app.get("/api/data/settings/activePlan", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.get("/api/data/settings/activePlan", verifyToken, async (req, res) => {
   try {
     const doc = await db
       .collection("users")
@@ -828,10 +860,14 @@ app.get("/api/data/settings/activePlan", verifyToken, dynamicRateLimiter, async 
   }
 });
 
-app.post("/api/data/settings/activePlan", verifyToken, dynamicRateLimiter, async (req, res) => {
+app.post("/api/data/settings/activePlan", verifyToken, async (req, res) => {
   try {
     const { planId } = req.body;
-    
+
+    if (planId && !isValidFirestoreId(planId)) {
+      return res.status(400).json({ error: "Invalid plan ID format" });
+    }
+
     const docRef = db.collection("users").doc(req.user.uid).collection("settings").doc("general");
     const doc = await docRef.get();
     
