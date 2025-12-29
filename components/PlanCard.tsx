@@ -12,7 +12,7 @@ interface PlanCardProps {
   lang: Language;
 }
 
-export const PlanCard: React.FC<PlanCardProps> = ({ plan, isActive, onSelect, onEdit, onDelete, lang }) => {
+export const PlanCard: React.FC<PlanCardProps> = React.memo(({ plan, isActive, onSelect, onEdit, onDelete, lang }) => {
   const t = TRANSLATIONS[lang];
 
   const getThemeColors = (theme: string) => {
@@ -75,4 +75,4 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan, isActive, onSelect, on
       </div>
     </div>
   );
-};
+});
