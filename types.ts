@@ -67,9 +67,7 @@ export interface User {
 
 export enum Tab {
   TRACKER = 'TRACKER',
-  PLANS = 'PLANS',
-  RECIPES = 'RECIPES',
-  SHOPPING = 'SHOPPING'
+  RECIPES = 'RECIPES'
 }
 
 export type Language = 'en' | 'tr' | 'de' | 'fr' | 'nl' | 'es' | 'pt' | 'ru' | 'zh';

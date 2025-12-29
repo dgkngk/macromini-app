@@ -27,6 +27,7 @@ import { SettingsModal } from "./components/SettingsModal";
 import { LimitReachedModal } from "./components/LimitReachedModal";
 import { ToastProvider } from "./components/Toast";
 import { mergeShoppingList } from "./services/shoppingUtils";
+import { ChefMini } from "./components/ChefMini";
 import {
   Users,
   BookOpen,
@@ -39,6 +40,8 @@ import {
   ChefHat,
   LogOut,
   Loader2,
+  ShoppingCart,
+  X
 } from "lucide-react";
 
 import { generateShoppingList } from "./services/geminiService";
@@ -75,6 +78,7 @@ const App: React.FC = () => {
   // Settings & Modals
   const [showSettings, setShowSettings] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [showShoppingList, setShowShoppingList] = useState(false);
 
   // Settings
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -531,16 +535,6 @@ const App: React.FC = () => {
               {t.tracker_tab}
             </button>
             <button
-              onClick={() => setActiveTab(Tab.PLANS)}
-              className={`whitespace-nowrap flex-1 sm:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                activeTab === Tab.PLANS
-                  ? "bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-              }`}
-            >
-              {t.profiles_tab}
-            </button>
-            <button
               onClick={() => setActiveTab(Tab.RECIPES)}
               className={`whitespace-nowrap flex-1 sm:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
                 activeTab === Tab.RECIPES
@@ -549,16 +543,6 @@ const App: React.FC = () => {
               }`}
             >
               {t.recipes_tab}
-            </button>
-            <button
-              onClick={() => setActiveTab(Tab.SHOPPING)}
-              className={`whitespace-nowrap flex-1 sm:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                activeTab === Tab.SHOPPING
-                  ? "bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-              }`}
-            >
-              {t.shopping_tab}
             </button>
           </div>
         </div>
@@ -599,190 +583,221 @@ const App: React.FC = () => {
   );
 
   const renderTracker = () => {
-    if (!currentPlan)
-      return (
-        <div className="text-center py-20">
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">
-            {t.no_active_plan}
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400 mb-6">
-            {t.create_select_msg}
-          </p>
-          <button
-            onClick={() => setActiveTab(Tab.PLANS)}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-          >
-            {t.go_to_plans}
-          </button>
-        </div>
-      );
-
     return (
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="mb-6 flex items-center justify-between">
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+        {/* Plans Carousel */}
+        <div>
+          <div className="flex justify-between items-center mb-4">
+             <h2 className="text-xl font-bold text-slate-800 dark:text-white">
+                {t.diet_profiles}
+             </h2>
+          </div>
+          
+          <div className="flex overflow-x-auto pb-4 gap-4 snap-x hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+             {plans.map((plan) => (
+                <div key={plan.id} className="min-w-[280px] sm:min-w-[320px] snap-center">
+                   <PlanCard
+                      plan={plan}
+                      isActive={activePlanId === plan.id}
+                      onSelect={handleSelectPlan}
+                      onEdit={openEditPlan}
+                      onDelete={handleDeletePlan}
+                      lang={language}
+                   />
+                </div>
+             ))}
+             
+             <button
+                onClick={openNewPlan}
+                className="min-w-[280px] sm:min-w-[320px] snap-center flex flex-col items-center justify-center gap-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-all group p-6"
+             >
+                <div className="p-4 bg-white dark:bg-slate-800 rounded-full shadow-sm group-hover:scale-110 transition-transform">
+                   <Plus className="w-6 h-6 text-indigo-500" />
+                </div>
+                <span className="font-medium text-slate-600 dark:text-slate-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                   {t.create_plan}
+                </span>
+             </button>
+          </div>
+        </div>
+
+        {currentPlan ? (
           <div>
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
-              {t.todays_overview}
-            </h2>
-            <p className="text-slate-500 dark:text-slate-400">
-              {t.tracking_for}{" "}
-              <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                {currentPlan.name}
-              </span>
-            </p>
-          </div>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            style={{ colorScheme: theme }}
-            className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 text-sm focus:outline-none focus:border-indigo-500 dark:focus:border-indigo-400"
-          />
-        </div>
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
+                  {t.todays_overview}
+                </h2>
+                <p className="text-slate-500 dark:text-slate-400">
+                  {t.tracking_for}{" "}
+                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                    {currentPlan.name}
+                  </span>
+                </p>
+              </div>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                style={{ colorScheme: theme }}
+                className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 text-sm focus:outline-none focus:border-indigo-500 dark:focus:border-indigo-400"
+              />
+            </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 space-y-6">
-            <MacroProgress
-              current={dailyTotals}
-              target={currentPlan.targets}
-              theme={currentPlan.colorTheme}
-              lang={language}
-            />
-          </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-1 space-y-6">
+                <MacroProgress
+                  current={dailyTotals}
+                  target={currentPlan.targets}
+                  theme={currentPlan.colorTheme}
+                  lang={language}
+                />
+              </div>
 
-          <div className="lg:col-span-2">
-            <AddMeal
-              planId={currentPlan.id}
-              currentPlan={currentPlan}
-              remainingMacros={remainingMacros}
-              onAdd={handleAddEntry}
-              onSaveRecipe={handleSaveRecipe}
-              onAddToShoppingList={handleAddToShoppingList}
-              dateStr={selectedDate}
-              lang={language}
-            />
-            <MealLog
-              entries={dailyEntries}
-              onDelete={handleDeleteEntry}
-              lang={language}
-            />
+              <div className="lg:col-span-2">
+                <AddMeal
+                  planId={currentPlan.id}
+                  currentPlan={currentPlan}
+                  remainingMacros={remainingMacros}
+                  onAdd={handleAddEntry}
+                  onSaveRecipe={handleSaveRecipe}
+                  onAddToShoppingList={handleAddToShoppingList}
+                  dateStr={selectedDate}
+                  lang={language}
+                />
+                <MealLog
+                  entries={dailyEntries}
+                  onDelete={handleDeleteEntry}
+                  lang={language}
+                />
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="text-center py-12 border-t border-slate-100 dark:border-slate-800">
+            <h3 className="text-lg font-medium text-slate-800 dark:text-white mb-2">{t.no_active_plan}</h3>
+            <p className="text-slate-500 dark:text-slate-400">{t.create_select_msg}</p>
+          </div>
+        )}
       </div>
     );
   };
 
-  const renderPlans = () => (
-    <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
-            {t.diet_profiles}
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400">
-            {t.manage_profiles}
-          </p>
-        </div>
-        <button
-          onClick={openNewPlan}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium shadow-sm"
-        >
-          <Plus size={18} />
-          {t.create_plan}
-        </button>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {plans.map((plan) => (
-          <PlanCard
-            key={plan.id}
-            plan={plan}
-            isActive={activePlanId === plan.id}
-            onSelect={handleSelectPlan}
-            onEdit={openEditPlan}
-            onDelete={handleDeletePlan}
-            lang={language}
-          />
-        ))}
-
-        {plans.length === 0 && (
-          <div className="col-span-full py-12 text-center bg-white dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
-            <Users className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-            <p className="text-slate-500 dark:text-slate-400">{t.no_plans}</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
   const renderRecipes = () => (
-    <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
-          {t.cookbook_title}
-        </h2>
-        <p className="text-slate-500 dark:text-slate-400">{t.cookbook_desc}</p>
+    <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-8">
+      
+      {/* ChefMini Section */}
+      <div className="space-y-4">
+         {currentPlan ? (
+            <ChefMini 
+              plan={currentPlan}
+              remainingMacros={remainingMacros}
+              onAdd={handleAddEntry}
+              onSave={handleSaveRecipe}
+              onAddToShoppingList={handleAddToShoppingList}
+              dateStr={selectedDate}
+              lang={language}
+            />
+         ) : (
+            <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 text-center">
+               <ChefHat className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+               <p className="text-slate-500 dark:text-slate-400">{t.create_select_msg}</p>
+            </div>
+         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {savedRecipes.map((recipe) => (
-          <div
-            key={recipe.id}
-            onClick={() => setViewingRecipe(recipe)}
-            className="group bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:border-indigo-200 dark:hover:border-slate-600"
-          >
-            <div className="p-5">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-bold text-lg text-slate-800 dark:text-white line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                  {recipe.name}
-                </h3>
-              </div>
+      {/* Shopping List Button */}
+      <button
+         onClick={() => setShowShoppingList(true)}
+         className="w-full py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-400 rounded-2xl shadow-sm flex items-center justify-between px-6 transition-all group"
+      >
+         <div className="flex items-center gap-4">
+            <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+               <ShoppingCart size={24} />
+            </div>
+            <div className="text-left">
+               <h3 className="font-bold text-lg text-slate-800 dark:text-white">{t.shopping_list_title}</h3>
+               <p className="text-slate-500 dark:text-slate-400 text-sm">
+                  {shoppingList.filter(i => !i.completed).length} {t.shopping_list_desc}
+               </p>
+            </div>
+         </div>
+         <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+            <Plus size={16} />
+         </div>
+      </button>
 
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 line-clamp-2 h-10">
-                {recipe.description}
-              </p>
+      {/* Recipes List */}
+      <div>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
+            {t.cookbook_title}
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400">{t.cookbook_desc}</p>
+        </div>
 
-              <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mb-4">
-                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md">
-                  <Clock size={12} />
-                  {recipe.cookingTime}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {savedRecipes.map((recipe) => (
+            <div
+              key={recipe.id}
+              onClick={() => setViewingRecipe(recipe)}
+              className="group bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:border-indigo-200 dark:hover:border-slate-600"
+            >
+              <div className="p-5">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-bold text-lg text-slate-800 dark:text-white line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    {recipe.name}
+                  </h3>
                 </div>
-                <div className="flex items-center gap-1 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 px-2 py-1 rounded-md">
-                  <Flame size={12} />
-                  {recipe.calories}
-                </div>
-              </div>
 
-              <div className="flex justify-between items-center pt-3 border-t border-slate-100 dark:border-slate-700">
-                <span className="text-xs text-slate-400">
-                  {format(recipe.savedAt, "MMM d, yyyy")}
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteRecipe(recipe.id);
-                  }}
-                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                  title={t.delete_recipe}
-                >
-                  <Trash2 size={16} />
-                </button>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 line-clamp-2 h-10">
+                  {recipe.description}
+                </p>
+
+                <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mb-4">
+                  <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md">
+                    <Clock size={12} />
+                    {recipe.cookingTime}
+                  </div>
+                  <div className="flex items-center gap-1 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 px-2 py-1 rounded-md">
+                    <Flame size={12} />
+                    {recipe.calories}
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-3 border-t border-slate-100 dark:border-slate-700">
+                  <span className="text-xs text-slate-400">
+                    {format(recipe.savedAt, "MMM d, yyyy")}
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteRecipe(recipe.id);
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    title={t.delete_recipe}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        {savedRecipes.length === 0 && (
-          <div className="col-span-full py-16 text-center bg-white dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
-            <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-            <p className="text-slate-500 dark:text-slate-400 font-medium">
-              {t.no_recipes}
-            </p>
-            <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
-              {t.no_recipes_hint}
-            </p>
-          </div>
-        )}
+          {savedRecipes.length === 0 && (
+            <div className="col-span-full py-16 text-center bg-white dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+              <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+              <p className="text-slate-500 dark:text-slate-400 font-medium">
+                {t.no_recipes}
+              </p>
+              <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
+                {t.no_recipes_hint}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -794,20 +809,35 @@ const App: React.FC = () => {
 
       <main className="max-w-5xl mx-auto px-4 py-8">
         {activeTab === Tab.TRACKER && renderTracker()}
-        {activeTab === Tab.PLANS && renderPlans()}
         {activeTab === Tab.RECIPES && renderRecipes()}
-        {activeTab === Tab.SHOPPING && (
-          <ShoppingList
-            items={shoppingList}
-            onAdd={handleAddShoppingItem}
-            onToggle={handleToggleShoppingItem}
-            onDelete={handleDeleteShoppingItem}
-            onUpdate={handleUpdateShoppingItem}
-            onClearCompleted={handleClearCompletedShopping}
-            lang={language}
-          />
-        )}
       </main>
+
+      {/* Shopping List Modal */}
+      {showShoppingList && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+             <div className="flex justify-end p-4 pb-0">
+                <button
+                   onClick={() => setShowShoppingList(false)}
+                   className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                >
+                   <X size={24} />
+                </button>
+             </div>
+             <div className="p-6 pt-0 overflow-y-auto">
+                <ShoppingList
+                  items={shoppingList}
+                  onAdd={handleAddShoppingItem}
+                  onToggle={handleToggleShoppingItem}
+                  onDelete={handleDeleteShoppingItem}
+                  onUpdate={handleUpdateShoppingItem}
+                  onClearCompleted={handleClearCompletedShopping}
+                  lang={language}
+                />
+             </div>
+          </div>
+        </div>
+      )}
 
       {showPlanEditor && (
         <PlanEditor

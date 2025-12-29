@@ -3,7 +3,6 @@ import { analyzeMeal } from '../services/geminiService';
 import { MealEntry, Language, DietPlan, Macros, AiRecipeResponse } from '../types';
 import { Loader2, Plus, Sparkles } from 'lucide-react';
 import { TRANSLATIONS } from '../constants';
-import { ChefMini } from './ChefMini';
 
 interface AddMealProps {
   planId: string;
@@ -88,16 +87,6 @@ export const AddMeal: React.FC<AddMealProps> = ({ planId, currentPlan, remaining
                   </>
                 )}
               </button>
-              
-              <ChefMini 
-                plan={currentPlan}
-                remainingMacros={remainingMacros}
-                onAdd={onAdd}
-                onSave={onSaveRecipe}
-                onAddToShoppingList={onAddToShoppingList}
-                dateStr={dateStr}
-                lang={lang}
-              />
             </div>
           </div>
           {error && <p className="text-red-500 text-sm mt-2 absolute bottom-[-24px]">{error}</p>}
