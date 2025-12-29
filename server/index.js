@@ -52,6 +52,8 @@ const SUBSCRIPTION_STATUS = {
   TRIALING: 3,
 };
 
+const MAX_ALLOWED_CALORIES = 5000;
+
 // --- Utils: Base64 Encoding/Decoding ---
 // Base64-encode data before storing in Firestore to lightly obfuscate the raw
 // payload and keep it as a compact, transport-safe string.
@@ -557,7 +559,7 @@ app.post("/api/ai/recipe", verifyToken, attachUserTier, dynamicRateLimiter, asyn
 
     // 🛡️ Sentinel Security: Ensure targetCalories is a number to prevent injection or errors
     const safeCalories = parseInt(targetCalories, 10);
-    if (isNaN(safeCalories) || safeCalories < 0 || safeCalories > 5000) {
+    if (isNaN(safeCalories) || safeCalories < 0 || safeCalories > MAX_ALLOWED_CALORIES) {
        return res.status(400).json({ error: "Invalid calorie target" });
     }
 
