@@ -9,13 +9,11 @@ interface AddMealProps {
   currentPlan: DietPlan;
   remainingMacros: Macros;
   onAdd: (entry: Omit<MealEntry, 'id' | 'timestamp'>) => void;
-  onSaveRecipe: (recipe: AiRecipeResponse) => void;
-  onAddToShoppingList: (ingredients: string[]) => void;
   dateStr: string;
   lang: Language;
 }
 
-export const AddMeal: React.FC<AddMealProps> = ({ planId, currentPlan, remainingMacros, onAdd, onSaveRecipe, onAddToShoppingList, dateStr, lang }) => {
+export const AddMeal: React.FC<AddMealProps> = ({ planId, currentPlan, remainingMacros, onAdd, dateStr, lang }) => {
   const [input, setInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);

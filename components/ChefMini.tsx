@@ -7,7 +7,7 @@ import { generateAiRecipe } from '../services/geminiService';
 interface ChefMiniProps {
   plan: DietPlan;
   remainingMacros: Macros;
-  onAdd: (entry: Omit<MealEntry, 'id' | 'timestamp'>) => void;
+  onAdd: (entry: Omit<MealEntry, 'id' | 'timestamp'>) => Promise<void> | void;
   onSave: (recipe: AiRecipeResponse) => void;
   onAddToShoppingList: (ingredients: string[]) => Promise<void>;
   dateStr: string;
@@ -47,10 +47,10 @@ export const ChefMini: React.FC<ChefMiniProps> = ({ plan, remainingMacros, onAdd
     }
   };
 
-  const handleAddRecipe = () => {
+  const handleAddRecipe = async () => {
     if (!recipe) return;
 
-    onAdd({
+    await onAdd({
       planId: plan.id,
       date: dateStr,
       name: `ChefMini: ${recipe.name}`,
@@ -97,7 +97,7 @@ export const ChefMini: React.FC<ChefMiniProps> = ({ plan, remainingMacros, onAdd
       </div>
 
       {/* Content */}
-      <div className="p-6">
+      <div className="p-6 overflow-y-auto flex-1">
         
         {!recipe && (
           <div className="space-y-8">

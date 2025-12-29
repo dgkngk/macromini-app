@@ -258,6 +258,11 @@ const App: React.FC = () => {
     };
   }, [currentPlan, dailyTotals]);
 
+  const activeShoppingCount = useMemo(
+    () => shoppingList.filter((i) => !i.completed).length,
+    [shoppingList]
+  );
+
   // --- Handlers ---
 
   // Login handler is now just state update, actual logic is in Auth component calling api
@@ -619,6 +624,11 @@ const App: React.FC = () => {
                 </span>
              </button>
           </div>
+          {plans.length === 0 && (
+            <div className="mt-2 text-sm text-slate-500 dark:text-slate-400 text-center">
+              {t.no_plans}
+            </div>
+          )}
         </div>
 
         {currentPlan ? (
@@ -660,8 +670,6 @@ const App: React.FC = () => {
                   currentPlan={currentPlan}
                   remainingMacros={remainingMacros}
                   onAdd={handleAddEntry}
-                  onSaveRecipe={handleSaveRecipe}
-                  onAddToShoppingList={handleAddToShoppingList}
                   dateStr={selectedDate}
                   lang={language}
                 />
@@ -720,7 +728,7 @@ const App: React.FC = () => {
             <div className="text-left">
                <h3 className="font-bold text-lg text-slate-800 dark:text-white">{t.shopping_list_title}</h3>
                <p className="text-slate-500 dark:text-slate-400 text-sm">
-                  {shoppingList.filter(i => !i.completed).length} {t.shopping_list_desc}
+                  {activeShoppingCount} {t.shopping_list_desc}
                </p>
             </div>
          </div>
