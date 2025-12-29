@@ -110,13 +110,16 @@ export const generateRecipe = async (
   // Also sanitize plan name in the main context to be safe
   const safePlanNameContext = JSON.stringify(plan.name);
 
+  // 🛡️ Sentinel Security: Sanitize plan description to prevent prompt injection
+  const safePlanDescription = JSON.stringify(plan.description);
+
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: `You are a professional chef and nutritionist.
 
     Context:
     The user is following a ${safePlanNameContext} diet plan.
-    Description of plan: ${plan.description}.
+    Description of plan: ${safePlanDescription}.
     ${customRequest}
 
     Goal:
