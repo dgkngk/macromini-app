@@ -9,7 +9,7 @@ interface ChefMiniProps {
   remainingMacros: Macros;
   onAdd: (entry: Omit<MealEntry, 'id' | 'timestamp'>) => Promise<void> | void;
   onSave: (recipe: AiRecipeResponse) => void;
-  onAddToShoppingList: (ingredients: string[]) => Promise<void>;
+  onAddToShoppingList: (ingredients: string[], preGeneratedList?: string[]) => Promise<void>;
   dateStr: string;
   lang: Language;
 }
@@ -78,7 +78,7 @@ export const ChefMini: React.FC<ChefMiniProps> = ({ plan, remainingMacros, onAdd
 
     setShoppingLoading(true);
     try {
-      await onAddToShoppingList(recipe.ingredients);
+      await onAddToShoppingList(recipe.ingredients, recipe.shoppingList);
       setAddedToShopping(true);
     } finally {
       setShoppingLoading(false);

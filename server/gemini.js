@@ -126,9 +126,16 @@ export const generateRecipe = async (
     Create a single delicious recipe that provides approximately ${targetCalories} calories.
     The recipe should respect the diet plan style.
 
+    Also generate a shopping list for this recipe.
+    For the shopping list:
+    1. Combine duplicates.
+    2. Standardize units and translate them to ${langInstruction}.
+    3. Remove pantry staples like "water" or "ice".
+    4. Format as: "Quantity Unit Item" (fully localized string in ${langInstruction}).
+
     IMPORTANT: Generate the content in ${langInstruction}.
 
-    Return a JSON object containing the recipe details.`,
+    Return a JSON object containing the recipe details and the shopping list.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -145,6 +152,7 @@ export const generateRecipe = async (
           fat: { type: Type.NUMBER },
           fiber: { type: Type.NUMBER },
           sugar: { type: Type.NUMBER },
+          shoppingList: { type: Type.ARRAY, items: { type: Type.STRING } },
         },
         required: [
           "name",
@@ -158,6 +166,7 @@ export const generateRecipe = async (
           "fat",
           "fiber",
           "sugar",
+          "shoppingList",
         ],
       },
     },

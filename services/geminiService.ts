@@ -200,9 +200,16 @@ export const generateAiRecipe = async (
       Create a single delicious recipe that provides approximately ${targetCalories} calories.
       The recipe should respect the diet plan style (e.g. if Keto, low carb; if High Protein, focus on meat/legumes) unless the user's specific request contradicts it (prioritize user request).
 
-      IMPORTANT: Generate the content (name, description, ingredients, instructions) in ${langInstruction}.
+      Also generate a shopping list for this recipe.
+      For the shopping list:
+      1. Combine duplicates.
+      2. Standardize units and translate them to ${langInstruction}.
+      3. Remove pantry staples like "water" or "ice".
+      4. Format as: "Quantity Unit Item" (fully localized string in ${langInstruction}).
 
-      Return a JSON object containing the recipe details and its nutritional analysis.`,
+      IMPORTANT: Generate the content (name, description, ingredients, instructions, shoppingList) in ${langInstruction}.
+
+      Return a JSON object containing the recipe details, its nutritional analysis, and the shopping list.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -233,6 +240,11 @@ export const generateAiRecipe = async (
             fat: { type: Type.NUMBER },
             fiber: { type: Type.NUMBER },
             sugar: { type: Type.NUMBER },
+            shoppingList: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: `Consolidated shopping list in ${langInstruction}`,
+            },
           },
           required: [
             "name",
@@ -246,6 +258,7 @@ export const generateAiRecipe = async (
             "fat",
             "fiber",
             "sugar",
+            "shoppingList",
           ],
         },
       },

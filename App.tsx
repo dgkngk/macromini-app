@@ -385,11 +385,12 @@ const App: React.FC = () => {
     await api.shopping.saveAll(user.id, newList);
   };
 
-  const handleAddToShoppingList = async (ingredients: string[]) => {
+  const handleAddToShoppingList = async (ingredients: string[], preGeneratedList?: string[]) => {
     // 1. Get AI-cleaned list
-    // You might want to show a global loading indicator here if you wish,
-    // but usually component-level loading (Phase 3) is better.
-    const aiIngredients = await generateShoppingList(ingredients, language);
+    // Use preGeneratedList if available, otherwise call AI
+    const aiIngredients = preGeneratedList 
+      ? preGeneratedList 
+      : await generateShoppingList(ingredients, language);
 
     // 2. Merge using existing logic
     const newList = mergeShoppingList(shoppingList, aiIngredients);
