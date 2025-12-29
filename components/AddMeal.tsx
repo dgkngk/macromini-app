@@ -3,20 +3,17 @@ import { analyzeMeal } from '../services/geminiService';
 import { MealEntry, Language, DietPlan, Macros, AiRecipeResponse } from '../types';
 import { Loader2, Plus, Sparkles } from 'lucide-react';
 import { TRANSLATIONS } from '../constants';
-import { ChefMini } from './ChefMini';
 
 interface AddMealProps {
   planId: string;
   currentPlan: DietPlan;
   remainingMacros: Macros;
   onAdd: (entry: Omit<MealEntry, 'id' | 'timestamp'>) => void;
-  onSaveRecipe: (recipe: AiRecipeResponse) => void;
-  onAddToShoppingList: (ingredients: string[]) => void;
   dateStr: string;
   lang: Language;
 }
 
-export const AddMeal: React.FC<AddMealProps> = ({ planId, currentPlan, remainingMacros, onAdd, onSaveRecipe, onAddToShoppingList, dateStr, lang }) => {
+export const AddMeal: React.FC<AddMealProps> = ({ planId, currentPlan, remainingMacros, onAdd, dateStr, lang }) => {
   const [input, setInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,16 +85,6 @@ export const AddMeal: React.FC<AddMealProps> = ({ planId, currentPlan, remaining
                   </>
                 )}
               </button>
-              
-              <ChefMini 
-                plan={currentPlan}
-                remainingMacros={remainingMacros}
-                onAdd={onAdd}
-                onSave={onSaveRecipe}
-                onAddToShoppingList={onAddToShoppingList}
-                dateStr={dateStr}
-                lang={lang}
-              />
             </div>
           </div>
           {error && <p className="text-red-500 text-sm mt-2 absolute bottom-[-24px]">{error}</p>}
