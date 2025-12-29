@@ -52,6 +52,8 @@ const SUBSCRIPTION_STATUS = {
   TRIALING: 3,
 };
 
+const MAX_ALLOWED_CALORIES = 5000;
+
 // --- Utils: Base64 Encoding/Decoding ---
 // Base64-encode data before storing in Firestore to lightly obfuscate the raw
 // payload and keep it as a compact, transport-safe string.
@@ -551,6 +553,16 @@ app.post("/api/ai/recipe", verifyToken, attachUserTier, dynamicRateLimiter, asyn
     const { plan, remainingMacros, targetCalories, lang, userPrompt } =
       req.body;
 
+    if (!plan || typeof plan !== "object" || !plan.name || typeof plan.description !== "string") {
+      return res.status(400).json({ error: "Invalid plan data" });
+    }
+
+    // 🛡️ Sentinel Security: Ensure targetCalories is a number to prevent injection or errors
+    const safeCalories = parseInt(targetCalories, 10);
+    if (isNaN(safeCalories) || safeCalories < 0 || safeCalories > MAX_ALLOWED_CALORIES) {
+       return res.status(400).json({ error: "Invalid calorie target" });
+    }
+
     if (userPrompt && userPrompt.length > 500) {
       return res.status(400).json({ error: "User prompt too long" });
     }
@@ -559,7 +571,7 @@ app.post("/api/ai/recipe", verifyToken, attachUserTier, dynamicRateLimiter, asyn
     const data = await generateRecipe(
       plan,
       remainingMacros,
-      targetCalories,
+      safeCalories,
       lang,
       userPrompt,
       apiKey
