@@ -388,9 +388,7 @@ const App: React.FC = () => {
   const handleAddToShoppingList = async (ingredients: string[], preGeneratedList?: string[]) => {
     // 1. Get AI-cleaned list
     // Use preGeneratedList if available, otherwise call AI
-    const aiIngredients = preGeneratedList 
-      ? preGeneratedList 
-      : await generateShoppingList(ingredients, language);
+    const aiIngredients = preGeneratedList ?? await generateShoppingList(ingredients, language);
 
     // 2. Merge using existing logic
     const newList = mergeShoppingList(shoppingList, aiIngredients);

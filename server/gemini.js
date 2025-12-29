@@ -124,7 +124,7 @@ export const generateRecipe = async (
 
     Goal:
     Create a single delicious recipe that provides approximately ${targetCalories} calories.
-    The recipe should respect the diet plan style.
+    The recipe should respect the diet plan style (e.g. if Keto, low carb; if High Protein, focus on meat/legumes) unless the user's specific request contradicts it (prioritize user request).
 
     Also generate a shopping list for this recipe.
     For the shopping list:
@@ -133,9 +133,9 @@ export const generateRecipe = async (
     3. Remove pantry staples like "water" or "ice".
     4. Format as: "Quantity Unit Item" (fully localized string in ${langInstruction}).
 
-    IMPORTANT: Generate the content in ${langInstruction}.
+    IMPORTANT: Generate the content (name, description, ingredients, instructions, shoppingList) in ${langInstruction}.
 
-    Return a JSON object containing the recipe details and the shopping list.`,
+    Return a JSON object containing the recipe details, its nutritional analysis, and the shopping list.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
