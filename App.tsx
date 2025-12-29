@@ -299,17 +299,20 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeletePlan = (id: string) => {
+  const handleDeletePlan = useCallback((id: string) => {
     setItemToDelete({ type: "plan", id });
-  };
+  }, []);
 
-  const handleSelectPlan = async (id: string) => {
-    setActivePlanId(id);
-    setActiveTab(Tab.TRACKER);
-    if (user) {
-      await api.settings.saveActivePlan(user.id, id);
-    }
-  };
+  const handleSelectPlan = useCallback(
+    async (id: string) => {
+      setActivePlanId(id);
+      setActiveTab(Tab.TRACKER);
+      if (user) {
+        await api.settings.saveActivePlan(user.id, id);
+      }
+    },
+    [user],
+  );
 
   // Meal Handlers
   const handleAddEntry = useCallback(
@@ -454,15 +457,15 @@ const App: React.FC = () => {
     setItemToDelete(null);
   };
 
-  const openNewPlan = () => {
+  const openNewPlan = useCallback(() => {
     setEditingPlan(undefined);
     setShowPlanEditor(true);
-  };
+  }, []);
 
-  const openEditPlan = (plan: DietPlan) => {
+  const openEditPlan = useCallback((plan: DietPlan) => {
     setEditingPlan(plan);
     setShowPlanEditor(true);
-  };
+  }, []);
 
   const toggleTheme = () =>
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
