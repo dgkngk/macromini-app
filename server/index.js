@@ -53,6 +53,9 @@ const SUBSCRIPTION_STATUS = {
 };
 
 const MAX_ALLOWED_CALORIES = 5000;
+const MAX_PLAN_NAME_LENGTH = 100;
+const MAX_PLAN_DESCRIPTION_LENGTH = 5000;
+const MAX_INGREDIENT_LENGTH = 200;
 
 // --- Utils: Base64 Encoding/Decoding ---
 // Base64-encode data before storing in Firestore to lightly obfuscate the raw
@@ -553,8 +556,16 @@ app.post("/api/ai/recipe", verifyToken, attachUserTier, dynamicRateLimiter, asyn
     const { plan, remainingMacros, targetCalories, lang, userPrompt } =
       req.body;
 
-    if (!plan || typeof plan !== "object" || !plan.name || typeof plan.description !== "string") {
+    if (!plan || typeof plan !== "object" || typeof plan.name !== "string" || typeof plan.description !== "string") {
       return res.status(400).json({ error: "Invalid plan data" });
+    }
+
+    // 🛡️ Sentinel Security: Strict Input Validation
+    if (plan.name.length > MAX_PLAN_NAME_LENGTH) {
+      return res.status(400).json({ error: "Plan name too long" });
+    }
+    if (plan.description.length > MAX_PLAN_DESCRIPTION_LENGTH) {
+      return res.status(400).json({ error: "Plan description too long" });
     }
 
     // 🛡️ Sentinel Security: Ensure targetCalories is a number to prevent injection or errors
@@ -587,8 +598,17 @@ app.post("/api/ai/shopping", verifyToken, attachUserTier, dynamicRateLimiter, as
   try {
     const { ingredients, lang } = req.body;
 
-    if (Array.isArray(ingredients) && ingredients.length > 100) {
+    if (!Array.isArray(ingredients)) {
+      return res.status(400).json({ error: "Ingredients must be an array" });
+    }
+
+    if (ingredients.length > 100) {
       return res.status(400).json({ error: "Too many ingredients" });
+    }
+
+    // 🛡️ Sentinel Security: Validate individual ingredient lengths to prevent payload bloat
+    if (ingredients.some(i => typeof i !== "string" || i.length > MAX_INGREDIENT_LENGTH)) {
+      return res.status(400).json({ error: "Invalid ingredient format or length" });
     }
     
     const apiKey = getApiKeyForUser(req.user);
