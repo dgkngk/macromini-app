@@ -39,6 +39,7 @@ export interface AiRecipeResponse extends AiAnalysisResponse {
   ingredients: string[];
   instructions: string[];
   cookingTime: string;
+  shoppingList: string[];
 }
 
 export interface SavedRecipe extends AiRecipeResponse {

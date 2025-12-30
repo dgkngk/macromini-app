@@ -81,7 +81,7 @@ export const api = {
     },
 
     loginWithApple: async (): Promise<User> => {
-       throw new Error("Apple Sign-In requires domain verification. Please use Google or Email for Phase 2 testing.");
+       throw new Error("Apple Sign-In is not implemented yet, thank you for waiting.");
     },
 
     logout: async (): Promise<void> => {

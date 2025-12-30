@@ -7,7 +7,7 @@ interface RecipeModalProps {
   recipe: SavedRecipe;
   onClose: () => void;
   onLogMeal: (recipe: SavedRecipe) => void;
-  onAddToShoppingList: (ingredients: string[]) => Promise<void>;
+  onAddToShoppingList: (ingredients: string[], preGeneratedList?: string[]) => Promise<void>;
   lang: Language;
 }
 
@@ -21,7 +21,7 @@ export const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose, onLog
     
     setIsLoading(true);
     try {
-      await onAddToShoppingList(recipe.ingredients);
+      await onAddToShoppingList(recipe.ingredients, recipe.shoppingList);
       setAddedToShopping(true);
     } finally {
       setIsLoading(false);
