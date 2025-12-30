@@ -1,43 +1,9 @@
-# Sentinel Journal
+## 2024-05-23 - Top-Level Side Effects Hinder Security Verification
+**Vulnerability:** Inability to easily verify security fixes in the `server` package locally.
+**Learning:** The `server/index.js` file executes top-level code that attempts to access Firebase services (`db.projectId`) immediately upon import. This causes the module to crash in environments without credentials, making unit testing and security verification difficult without a full mock environment.
+**Prevention:** Avoid top-level side effects that depend on external services. Wrap initialization logic in functions (e.g., `startServer()`) or check if the service is ready before accessing properties.
 
-## 2025-02-17 - Missing HTTP Security Headers
-**Vulnerability:** The Express server in `server/index.js` lacks standard security headers (e.g., Content Security Policy, X-Frame-Options, X-Content-Type-Options).
-**Learning:** Even simple API servers need basic protection against common web vulnerabilities like clickjacking and XSS.
-**Prevention:** Use `helmet` middleware in all Express applications by default.
-
-## 2025-02-17 - Prompt Injection Mitigation
-**Vulnerability:** User input (`userPrompt`) was directly interpolated into the AI system prompt in `server/gemini.js`, allowing users to potentially override system instructions (Prompt Injection).
-**Learning:** LLMs will follow the most recent or "strongest" instruction. Interpolating user input directly into the prompt without boundaries or safety instructions is dangerous.
-**Prevention:**
-1. Sanitize input: Remove characters that break structure (like newlines or quotes) and limit length.
-2. Structure the prompt: Wrap user input in a clear "User Preference" section.
-3. Explicit Instructions: Add system instructions to explicitly IGNORE the user input if it conflicts with core goals or safety rules.
-=======
-**Vulnerability:** The Express server in `server/index.js` lacks standard security headers.
-**Learning:** Even simple API servers need basic protection against common web vulnerabilities like clickjacking and XSS.
-**Prevention:** Use `helmet` middleware in all Express applications by default.
-
-## 2025-02-17 - Hardcoded Secrets in Client Code
-**Vulnerability:** API keys and Firebase config were hardcoded in `lib/firebase.ts`.
-**Learning:** Client-side code is public. Hardcoding secrets exposes them to anyone who views the source.
-**Prevention:** Always use environment variables (`import.meta.env`) and never commit `.env` files.
-
-## 2025-02-17 - Information Leakage in Server Errors
-**Vulnerability:** Server endpoints were returning `e.message` directly to the client.
-**Learning:** Error messages can reveal internal database structure or logic flaws.
-**Prevention:** Log the error server-side and return a generic "Internal Server Error" message to the client.
-
-## 2025-02-17 - Sensitive Data Logging
-**Vulnerability:** Full user objects (plans, recipes) were being logged to the console.
-**Learning:** Logs are often stored insecurely or accessible to too many people. PII or sensitive data in logs is a leak.
-**Prevention:** Log only IDs or metadata, never full data payloads unless strictly necessary for debugging in a secure environment.
-
-## 2025-02-17 - Missing Rate Limiting on Data Routes
-**Vulnerability:** Data persistence endpoints (`/api/data/*`) were not rate-limited.
-**Learning:** Even authenticated endpoints can be abused to scrape data or cause denial of service.
-**Prevention:** Apply rate limiting middleware to all API routes, not just expensive AI ones.
-
-## 2025-02-17 - Prompt Injection Mitigation in Analyze Meal
-**Vulnerability:** The `analyzeMeal` function in `server/gemini.js` interpolated user input (`description`) directly into the prompt without sanitization, allowing for potential prompt injection attacks.
-**Learning:** Even simple "analyze this text" prompts can be manipulated if the input is not treated as a literal string.
-**Prevention:** Always use `JSON.stringify(input)` to escape quotes and control characters before inserting user input into an LLM prompt. This ensures the model interprets it as a data string, not a command.
+## 2025-02-12 - Input Validation and AI Cost Control
+**Vulnerability:** Unbounded string inputs in `/api/ai/recipe` and `/api/ai/shopping` could allow attackers to send massive payloads, leading to Denial of Service (DoS) or excessive API costs (Google Gemini).
+**Learning:** Reliance on `JSON.stringify` for injection protection is not enough for resource exhaustion. Explicit length limits must be enforced at the API gateway level before processing or sending data to third-party AI services.
+**Prevention:** Implement strict length checks (`MAX_PLAN_NAME_LENGTH`, `MAX_INGREDIENT_LENGTH`) on all string inputs, especially those forwarding data to paid APIs.
