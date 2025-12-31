@@ -14,7 +14,7 @@ interface ShoppingListProps {
   lang: Language;
 }
 
-export const ShoppingList: React.FC<ShoppingListProps> = ({ 
+export const ShoppingList: React.FC<ShoppingListProps> = React.memo(({
   items, 
   onAdd, 
   onToggle, 
@@ -156,4 +156,4 @@ export const ShoppingList: React.FC<ShoppingListProps> = ({
       </div>
     </div>
   );
-};
+});
