@@ -379,45 +379,57 @@ const App: React.FC = () => {
   };
 
   // Shopping List Handlers
-  const updateShoppingList = async (newList: ShoppingItem[]) => {
+  const updateShoppingList = useCallback(async (newList: ShoppingItem[]) => {
     if (!user) return;
     setShoppingList(newList);
     await api.shopping.saveAll(user.id, newList);
-  };
+  }, [user]);
 
-  const handleAddToShoppingList = async (ingredients: string[], preGeneratedList?: string[]) => {
+  const handleAddToShoppingList = useCallback(async (ingredients: string[], preGeneratedList?: string[]) => {
     // 1. Get AI-cleaned list
     // Use preGeneratedList if available, otherwise call AI
     const aiIngredients = preGeneratedList ?? await generateShoppingList(ingredients, language);
 
     // 2. Merge using existing logic
+    // Note: We use the callback form of setShoppingList to avoid dependency on shoppingList state
+    // but here updateShoppingList updates state directly.
+    // To properly fix this, we should look at how updateShoppingList works.
+    // However, since updateShoppingList is async and calls API, let's keep it simple for now,
+    // but we need to depend on shoppingList for the merge logic.
+    // Wait, if we depend on shoppingList, the callback changes every time the list changes.
+    // That's acceptable as we only want to prevent re-creation on other state changes.
+
+    // Actually, to make it truly stable, we'd need to use functional updates,
+    // but mergeShoppingList needs the current list.
+    // So we will depend on shoppingList.
+    // This still prevents re-renders when other things change (like date, input, etc).
     const newList = mergeShoppingList(shoppingList, aiIngredients);
     updateShoppingList(newList);
-  };
+  }, [shoppingList, language, updateShoppingList]);
 
-  const handleAddShoppingItem = (text: string) => {
+  const handleAddShoppingItem = useCallback((text: string) => {
     const newList = mergeShoppingList(shoppingList, [text]);
     updateShoppingList(newList);
-  };
+  }, [shoppingList, updateShoppingList]);
 
-  const handleToggleShoppingItem = (id: string) => {
+  const handleToggleShoppingItem = useCallback((id: string) => {
     const newList = shoppingList.map((item) =>
       item.id === id ? { ...item, completed: !item.completed } : item,
     );
     updateShoppingList(newList);
-  };
+  }, [shoppingList, updateShoppingList]);
 
-  const handleDeleteShoppingItem = (id: string) => {
+  const handleDeleteShoppingItem = useCallback((id: string) => {
     const newList = shoppingList.filter((item) => item.id !== id);
     updateShoppingList(newList);
-  };
+  }, [shoppingList, updateShoppingList]);
 
-  const handleClearCompletedShopping = () => {
+  const handleClearCompletedShopping = useCallback(() => {
     const newList = shoppingList.filter((item) => !item.completed);
     updateShoppingList(newList);
-  };
+  }, [shoppingList, updateShoppingList]);
 
-  const handleUpdateShoppingItem = async (
+  const handleUpdateShoppingItem = useCallback(async (
     id: string,
     updates: Partial<ShoppingItem>,
   ) => {
@@ -426,7 +438,7 @@ const App: React.FC = () => {
     );
     setShoppingList(updatedList);
     await api.shopping.saveAll(user?.id || "guest", updatedList);
-  };
+  }, [shoppingList, user]);
 
   // Execution Handlers
   const executeDelete = async () => {
