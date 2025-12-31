@@ -165,6 +165,16 @@ const eliteLimiter = rateLimit({
   store: new FirestoreStore(),
 });
 
+// 🛡️ Sentinel Security: Webhook Rate Limiter (DoS Protection)
+// Use default MemoryStore to avoid Firestore write costs during an attack.
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  limit: 60, // 60 requests per minute per IP
+  message: "Too many webhook requests, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const dynamicRateLimiter = async (req, res, next) => {
   // Ensure user tier is attached
   if (req.user.tier === USER_TIER.ELITE) {
@@ -187,7 +197,7 @@ const getApiKeyForUser = (user) => {
 // --- Routes ---
 
 // Lemon Squeezy Webhook
-app.post("/api/webhooks/lemonsqueezy", async (req, res) => {
+app.post("/api/webhooks/lemonsqueezy", webhookLimiter, async (req, res) => {
   const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
   const hmac = crypto.createHmac("sha256", secret);
   const digest = Buffer.from(hmac.update(req.rawBody).digest("hex"), "utf8");
