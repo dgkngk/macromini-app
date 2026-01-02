@@ -343,40 +343,48 @@ const App: React.FC = () => {
   }, []);
 
   // Recipe Handlers
-  const handleSaveRecipe = async (recipe: AiRecipeResponse) => {
-    if (!user) return;
-    const newRecipe: SavedRecipe = {
-      ...recipe,
-      id: crypto.randomUUID(),
-      savedAt: Date.now(),
-    };
+  // ⚡ Bolt: Memoized to prevent ChefMini re-renders
+  const handleSaveRecipe = useCallback(
+    async (recipe: AiRecipeResponse) => {
+      if (!user) return;
+      const newRecipe: SavedRecipe = {
+        ...recipe,
+        id: crypto.randomUUID(),
+        savedAt: Date.now(),
+      };
 
-    setSavedRecipes((prev) => [newRecipe, ...prev]);
-    await api.recipes.save(user.id, newRecipe);
-  };
+      setSavedRecipes((prev) => [newRecipe, ...prev]);
+      await api.recipes.save(user.id, newRecipe);
+    },
+    [user],
+  );
 
-  const handleDeleteRecipe = (id: string) => {
+  const handleDeleteRecipe = useCallback((id: string) => {
     setItemToDelete({ type: "recipe", id });
-  };
+  }, []);
 
-  const handleLogRecipe = (recipe: SavedRecipe) => {
-    if (!activePlanId) return;
-    handleAddEntry({
-      planId: activePlanId,
-      date: selectedDate,
-      name: `Cookbook: ${recipe.name}`,
-      macros: {
-        calories: recipe.calories,
-        protein: recipe.protein,
-        carbs: recipe.carbs,
-        fat: recipe.fat,
-        fiber: recipe.fiber,
-        sugar: recipe.sugar,
-      },
-    });
-    setViewingRecipe(null);
-    setActiveTab(Tab.TRACKER);
-  };
+  // ⚡ Bolt: Memoized for use in RecipeModal
+  const handleLogRecipe = useCallback(
+    (recipe: SavedRecipe) => {
+      if (!activePlanId) return;
+      handleAddEntry({
+        planId: activePlanId,
+        date: selectedDate,
+        name: `Cookbook: ${recipe.name}`,
+        macros: {
+          calories: recipe.calories,
+          protein: recipe.protein,
+          carbs: recipe.carbs,
+          fat: recipe.fat,
+          fiber: recipe.fiber,
+          sugar: recipe.sugar,
+        },
+      });
+      setViewingRecipe(null);
+      setActiveTab(Tab.TRACKER);
+    },
+    [activePlanId, selectedDate, handleAddEntry],
+  );
 
   // Shopping List Handlers
   const updateShoppingList = useCallback(async (newList: ShoppingItem[]) => {
