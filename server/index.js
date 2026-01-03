@@ -113,18 +113,49 @@ const verifyToken = async (req, res, next) => {
 };
 
 // --- Middleware: Attach User Tier ---
+// ⚡ Bolt: Simple in-memory cache to reduce Firestore reads (5 min TTL)
+const userTierCache = new Map();
+const TIER_CACHE_TTL = 5 * 60 * 1000;
+
 const attachUserTier = async (req, res, next) => {
   if (!req.user) return next();
 
+  const uid = req.user.uid;
+  const now = Date.now();
+
+  if (userTierCache.has(uid)) {
+    const cached = userTierCache.get(uid);
+    if (now - cached.timestamp < TIER_CACHE_TTL) {
+      req.user.tier = cached.tier;
+      req.user.subscriptionStatus = cached.subscriptionStatus;
+      req.user.lemonSqueezyCustomerId = cached.lemonSqueezyCustomerId;
+      req.user.subscriptionId = cached.subscriptionId;
+      return next();
+    }
+  }
+
   try {
-    const userDoc = await db.collection("users").doc(req.user.uid).get();
+    const userDoc = await db.collection("users").doc(uid).get();
     if (userDoc.exists) {
       const userData = userDoc.data();
       req.user.tier = userData.tier !== undefined ? userData.tier : USER_TIER.FREE;
+      req.user.subscriptionStatus = userData.subscriptionStatus;
       req.user.lemonSqueezyCustomerId = userData.lemonSqueezyCustomerId;
       req.user.subscriptionId = userData.subscriptionId;
+
+      userTierCache.set(uid, {
+        tier: req.user.tier,
+        subscriptionStatus: req.user.subscriptionStatus,
+        lemonSqueezyCustomerId: req.user.lemonSqueezyCustomerId,
+        subscriptionId: req.user.subscriptionId,
+        timestamp: now,
+      });
     } else {
       req.user.tier = USER_TIER.FREE;
+      userTierCache.set(uid, {
+        tier: USER_TIER.FREE,
+        timestamp: now,
+      });
     }
   } catch (error) {
     console.error("Error fetching user tier:", error);
