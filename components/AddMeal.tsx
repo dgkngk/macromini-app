@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { analyzeMeal } from '../services/geminiService';
-import { MealEntry, Language, DietPlan, Macros, AiRecipeResponse } from '../types';
+import { MealEntry, Language, DietPlan, Macros } from '../types';
 import { Loader2, Plus, Sparkles } from 'lucide-react';
 import { TRANSLATIONS } from '../constants';
 
@@ -13,7 +13,9 @@ interface AddMealProps {
   lang: Language;
 }
 
-export const AddMeal: React.FC<AddMealProps> = ({ planId, currentPlan, remainingMacros, onAdd, dateStr, lang }) => {
+// ⚡ Bolt: Wrapped in React.memo to prevent unnecessary re-renders when parent state changes
+// (e.g. settings toggles) but props remain stable. This stabilizes the input field.
+export const AddMeal: React.FC<AddMealProps> = React.memo(({ planId, currentPlan, remainingMacros, onAdd, dateStr, lang }) => {
   const [input, setInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,4 +98,4 @@ export const AddMeal: React.FC<AddMealProps> = ({ planId, currentPlan, remaining
       </div>
     </div>
   );
-};
+});
