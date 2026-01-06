@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { format } from "date-fns";
 import {
   DietPlan,
@@ -17,13 +17,9 @@ import { PlanCard } from "./components/PlanCard";
 import { MacroProgress } from "./components/MacroProgress";
 import { AddMeal } from "./components/AddMeal";
 import { MealLog } from "./components/MealLog";
-import { PlanEditor } from "./components/PlanEditor";
-import { RecipeModal } from "./components/RecipeModal";
-import { ShoppingList } from "./components/ShoppingList";
 import { ConfirmModal } from "./components/ConfirmModal";
 import { RateLimitProgressBar } from "./components/RateLimitProgressBar";
 import { Auth } from "./components/Auth";
-import { SettingsModal } from "./components/SettingsModal";
 import { LimitReachedModal } from "./components/LimitReachedModal";
 import { ToastProvider } from "./components/Toast";
 import { mergeShoppingList } from "./services/shoppingUtils";
@@ -47,6 +43,13 @@ import {
 import { generateShoppingList } from "./services/geminiService";
 import { rateLimitStore } from "./lib/rateLimitStore";
 import { LanguageSelector } from "./components/LanguageSelector";
+
+// Lazy load heavy components that are not needed on initial render
+const SettingsModal = React.lazy(() => import("./components/SettingsModal").then(module => ({ default: module.SettingsModal })));
+const PlanEditor = React.lazy(() => import("./components/PlanEditor").then(module => ({ default: module.PlanEditor })));
+const RecipeModal = React.lazy(() => import("./components/RecipeModal").then(module => ({ default: module.RecipeModal })));
+const ShoppingList = React.lazy(() => import("./components/ShoppingList").then(module => ({ default: module.ShoppingList })));
+
 
 const App: React.FC = () => {
   // --- Auth State ---
@@ -847,40 +850,46 @@ const App: React.FC = () => {
                 </button>
              </div>
              <div className="p-6 pt-0 overflow-y-auto">
-                <ShoppingList
-                  items={shoppingList}
-                  onAdd={handleAddShoppingItem}
-                  onToggle={handleToggleShoppingItem}
-                  onDelete={handleDeleteShoppingItem}
-                  onUpdate={handleUpdateShoppingItem}
-                  onClearCompleted={handleClearCompletedShopping}
-                  lang={language}
-                />
+               <Suspense fallback={<div className="p-12 flex justify-center"><Loader2 className="animate-spin text-indigo-600"/></div>}>
+                  <ShoppingList
+                    items={shoppingList}
+                    onAdd={handleAddShoppingItem}
+                    onToggle={handleToggleShoppingItem}
+                    onDelete={handleDeleteShoppingItem}
+                    onUpdate={handleUpdateShoppingItem}
+                    onClearCompleted={handleClearCompletedShopping}
+                    lang={language}
+                  />
+               </Suspense>
              </div>
           </div>
         </div>
       )}
 
       {showPlanEditor && (
-        <PlanEditor
-          initialPlan={editingPlan}
-          onSave={handleSavePlan}
-          onCancel={() => {
-            setShowPlanEditor(false);
-            setEditingPlan(undefined);
-          }}
-          lang={language}
-        />
+        <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"><Loader2 className="animate-spin text-white w-10 h-10"/></div>}>
+          <PlanEditor
+            initialPlan={editingPlan}
+            onSave={handleSavePlan}
+            onCancel={() => {
+              setShowPlanEditor(false);
+              setEditingPlan(undefined);
+            }}
+            lang={language}
+          />
+        </Suspense>
       )}
 
       {viewingRecipe && (
-        <RecipeModal
-          recipe={viewingRecipe}
-          onClose={() => setViewingRecipe(null)}
-          onLogMeal={handleLogRecipe}
-          onAddToShoppingList={handleAddToShoppingList}
-          lang={language}
-        />
+        <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"><Loader2 className="animate-spin text-white w-10 h-10"/></div>}>
+          <RecipeModal
+            recipe={viewingRecipe}
+            onClose={() => setViewingRecipe(null)}
+            onLogMeal={handleLogRecipe}
+            onAddToShoppingList={handleAddToShoppingList}
+            lang={language}
+          />
+        </Suspense>
       )}
 
       {itemToDelete && (
@@ -900,11 +909,13 @@ const App: React.FC = () => {
       )}
 
       {showSettings && user && (
-        <SettingsModal
-          user={user}
-          onClose={() => setShowSettings(false)}
-          lang={language}
-        />
+        <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"><Loader2 className="animate-spin text-white w-10 h-10"/></div>}>
+          <SettingsModal
+            user={user}
+            onClose={() => setShowSettings(false)}
+            lang={language}
+          />
+        </Suspense>
       )}
 
       {showLimitModal && (
