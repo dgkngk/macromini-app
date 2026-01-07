@@ -7,7 +7,9 @@ interface RateLimitProgressBarProps {
   lang: Language;
 }
 
-export const RateLimitProgressBar: React.FC<RateLimitProgressBarProps> = ({ lang }) => {
+// Optimization: Memoized as it only depends on 'lang' and internal store subscription.
+// Prevents re-renders on every App render.
+export const RateLimitProgressBar: React.FC<RateLimitProgressBarProps> = React.memo(({ lang }) => {
   const { limit, remaining } = useRateLimit();
   const t = TRANSLATIONS[lang];
 
@@ -37,4 +39,4 @@ export const RateLimitProgressBar: React.FC<RateLimitProgressBarProps> = ({ lang
       </div>
     </div>
   );
-};
+});

@@ -280,7 +280,19 @@ const App: React.FC = () => {
   };
 
   // Plan Handlers
-  const handleSavePlan = async (plan: DietPlan) => {
+  const handleSelectPlan = useCallback(
+    async (id: string) => {
+      setActivePlanId(id);
+      setActiveTab(Tab.TRACKER);
+      if (user) {
+        await api.settings.saveActivePlan(user.id, id);
+      }
+    },
+    [user],
+  );
+
+  // Memoized to prevent PlanEditor re-renders
+  const handleSavePlan = useCallback(async (plan: DietPlan) => {
     if (!user) return;
     try {
       const savedPlan = await api.plans.save(user.id, plan);
@@ -297,22 +309,11 @@ const App: React.FC = () => {
     } catch (e) {
       console.error("Error saving plan", e);
     }
-  };
+  }, [user, activePlanId, handleSelectPlan]);
 
   const handleDeletePlan = useCallback((id: string) => {
     setItemToDelete({ type: "plan", id });
   }, []);
-
-  const handleSelectPlan = useCallback(
-    async (id: string) => {
-      setActivePlanId(id);
-      setActiveTab(Tab.TRACKER);
-      if (user) {
-        await api.settings.saveActivePlan(user.id, id);
-      }
-    },
-    [user],
-  );
 
   // Meal Handlers
   const handleAddEntry = useCallback(
@@ -343,7 +344,8 @@ const App: React.FC = () => {
   }, []);
 
   // Recipe Handlers
-  const handleSaveRecipe = async (recipe: AiRecipeResponse) => {
+  // Memoized to prevent ChefMini re-renders
+  const handleSaveRecipe = useCallback(async (recipe: AiRecipeResponse) => {
     if (!user) return;
     const newRecipe: SavedRecipe = {
       ...recipe,
@@ -353,13 +355,13 @@ const App: React.FC = () => {
 
     setSavedRecipes((prev) => [newRecipe, ...prev]);
     await api.recipes.save(user.id, newRecipe);
-  };
+  }, [user]);
 
-  const handleDeleteRecipe = (id: string) => {
+  const handleDeleteRecipe = useCallback((id: string) => {
     setItemToDelete({ type: "recipe", id });
-  };
+  }, []);
 
-  const handleLogRecipe = (recipe: SavedRecipe) => {
+  const handleLogRecipe = useCallback((recipe: SavedRecipe) => {
     if (!activePlanId) return;
     handleAddEntry({
       planId: activePlanId,
@@ -376,7 +378,7 @@ const App: React.FC = () => {
     });
     setViewingRecipe(null);
     setActiveTab(Tab.TRACKER);
-  };
+  }, [activePlanId, selectedDate, handleAddEntry]);
 
   // Shopping List Handlers
   const updateShoppingList = useCallback(async (newList: ShoppingItem[]) => {
