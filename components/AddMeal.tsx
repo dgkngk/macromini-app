@@ -13,7 +13,8 @@ interface AddMealProps {
   lang: Language;
 }
 
-export const AddMeal: React.FC<AddMealProps> = ({ planId, currentPlan, remainingMacros, onAdd, dateStr, lang }) => {
+// Optimized: Wrapped in React.memo to prevent re-renders when parent state changes (e.g. active tab switch) but props remain stable.
+export const AddMeal: React.NamedExoticComponent<AddMealProps> = React.memo(({ planId, currentPlan, remainingMacros, onAdd, dateStr, lang }) => {
   const [input, setInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,4 +97,4 @@ export const AddMeal: React.FC<AddMealProps> = ({ planId, currentPlan, remaining
       </div>
     </div>
   );
-};
+});
