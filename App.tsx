@@ -343,40 +343,48 @@ const App: React.FC = () => {
   }, []);
 
   // Recipe Handlers
-  const handleSaveRecipe = async (recipe: AiRecipeResponse) => {
-    if (!user) return;
-    const newRecipe: SavedRecipe = {
-      ...recipe,
-      id: crypto.randomUUID(),
-      savedAt: Date.now(),
-    };
+  const handleSaveRecipe = useCallback(
+    async (recipe: AiRecipeResponse) => {
+      if (!user) return;
+      const newRecipe: SavedRecipe = {
+        ...recipe,
+        id: crypto.randomUUID(),
+        savedAt: Date.now(),
+      };
 
-    setSavedRecipes((prev) => [newRecipe, ...prev]);
-    await api.recipes.save(user.id, newRecipe);
-  };
+      setSavedRecipes((prev) => [newRecipe, ...prev]);
+      await api.recipes.save(user.id, newRecipe);
+    },
+    [user],
+  );
 
-  const handleDeleteRecipe = (id: string) => {
+  const handleDeleteRecipe = useCallback((id: string) => {
     setItemToDelete({ type: "recipe", id });
-  };
+  }, []);
 
-  const handleLogRecipe = (recipe: SavedRecipe) => {
-    if (!activePlanId) return;
-    handleAddEntry({
-      planId: activePlanId,
-      date: selectedDate,
-      name: `Cookbook: ${recipe.name}`,
-      macros: {
-        calories: recipe.calories,
-        protein: recipe.protein,
-        carbs: recipe.carbs,
-        fat: recipe.fat,
-        fiber: recipe.fiber,
-        sugar: recipe.sugar,
-      },
-    });
-    setViewingRecipe(null);
-    setActiveTab(Tab.TRACKER);
-  };
+  const handleLogRecipe = useCallback(
+    (recipe: SavedRecipe) => {
+      if (!activePlanId) return;
+      handleAddEntry({
+        planId: activePlanId,
+        date: selectedDate,
+        name: `Cookbook: ${recipe.name}`,
+        macros: {
+          calories: recipe.calories,
+          protein: recipe.protein,
+          carbs: recipe.carbs,
+          fat: recipe.fat,
+          fiber: recipe.fiber,
+          sugar: recipe.sugar,
+        },
+      });
+      setViewingRecipe(null);
+      setActiveTab(Tab.TRACKER);
+    },
+    [activePlanId, selectedDate, handleAddEntry],
+  );
+
+  const closeRecipeModal = useCallback(() => setViewingRecipe(null), []);
 
   // Shopping List Handlers
   const updateShoppingList = useCallback(async (newList: ShoppingItem[]) => {
@@ -876,7 +884,7 @@ const App: React.FC = () => {
       {viewingRecipe && (
         <RecipeModal
           recipe={viewingRecipe}
-          onClose={() => setViewingRecipe(null)}
+          onClose={closeRecipeModal}
           onLogMeal={handleLogRecipe}
           onAddToShoppingList={handleAddToShoppingList}
           lang={language}

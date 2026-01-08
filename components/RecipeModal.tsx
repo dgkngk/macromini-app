@@ -11,7 +11,8 @@ interface RecipeModalProps {
   lang: Language;
 }
 
-export const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose, onLogMeal, onAddToShoppingList, lang }) => {
+// Optimized: Wrapped in React.memo to prevent re-renders when parent state changes but props remain stable.
+export const RecipeModal: React.NamedExoticComponent<RecipeModalProps> = React.memo(({ recipe, onClose, onLogMeal, onAddToShoppingList, lang }) => {
   const [addedToShopping, setAddedToShopping] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const t = TRANSLATIONS[lang];
@@ -142,4 +143,4 @@ export const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, onClose, onLog
       </div>
     </div>
   );
-};
+});
