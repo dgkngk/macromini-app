@@ -7,3 +7,8 @@
 **Vulnerability:** Unbounded string inputs in `/api/ai/recipe` and `/api/ai/shopping` could allow attackers to send massive payloads, leading to Denial of Service (DoS) or excessive API costs (Google Gemini).
 **Learning:** Reliance on `JSON.stringify` for injection protection is not enough for resource exhaustion. Explicit length limits must be enforced at the API gateway level before processing or sending data to third-party AI services.
 **Prevention:** Implement strict length checks (`MAX_PLAN_NAME_LENGTH`, `MAX_INGREDIENT_LENGTH`) on all string inputs, especially those forwarding data to paid APIs.
+
+## 2024-01-08 - [Restrictive CORS Policy]
+**Vulnerability:** The Express backend was using a default CORS configuration (`app.use(cors())`), effectively allowing requests from any origin (`Access-Control-Allow-Origin: *`). While acceptable for development, this exposes the API to Cross-Site Request Forgery (CSRF) or unauthorized consumption by malicious sites in production.
+**Learning:** Default middleware configurations often favor developer convenience over security. Always explicitly define boundaries for production environments.
+**Prevention:** I implemented logic to read an `ALLOWED_ORIGINS` environment variable. If present, the application strictly validates the `Origin` header against this list. If absent, it falls back to the permissive default (to avoid breaking existing setups) but this is now configurable without code changes.

@@ -23,7 +23,32 @@ const PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1); // Trust proxy for rate limiter
 
 app.use(helmet());
-app.use(cors());
+
+// 🛡️ Sentinel Security: Strict CORS Configuration
+// Only allow requests from trusted origins defined in ALLOWED_ORIGINS.
+// If variable is not set, default to allowing all (for dev/legacy support) but this should be configured in prod.
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim())
+  : [];
+
+if (allowedOrigins.length > 0) {
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
+    }),
+  );
+} else {
+  // Fallback to permissive CORS if not configured
+  app.use(cors());
+}
 
 // Capture raw body for Lemon Squeezy webhook signature verification
 app.use(
