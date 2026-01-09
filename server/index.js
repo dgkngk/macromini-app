@@ -113,16 +113,51 @@ const verifyToken = async (req, res, next) => {
 };
 
 // --- Middleware: Attach User Tier ---
+const userTierCache = new Map();
+const USER_CACHE_TTL = 60 * 1000; // 60 seconds
+const MAX_CACHE_SIZE = 10000;
+
 const attachUserTier = async (req, res, next) => {
   if (!req.user) return next();
 
+  const uid = req.user.uid;
+  const now = Date.now();
+
+  // ⚡ Optimization: Check in-memory cache first to save DB reads
+  if (userTierCache.has(uid)) {
+    const cached = userTierCache.get(uid);
+    if (now - cached.timestamp < USER_CACHE_TTL) {
+      req.user.tier = cached.tier;
+      req.user.lemonSqueezyCustomerId = cached.lemonSqueezyCustomerId;
+      req.user.subscriptionId = cached.subscriptionId;
+      req.user.subscriptionStatus = cached.subscriptionStatus;
+      return next();
+    }
+  }
+
   try {
-    const userDoc = await db.collection("users").doc(req.user.uid).get();
+    const userDoc = await db.collection("users").doc(uid).get();
     if (userDoc.exists) {
       const userData = userDoc.data();
-      req.user.tier = userData.tier !== undefined ? userData.tier : USER_TIER.FREE;
+      const tier = userData.tier !== undefined ? userData.tier : USER_TIER.FREE;
+
+      req.user.tier = tier;
       req.user.lemonSqueezyCustomerId = userData.lemonSqueezyCustomerId;
       req.user.subscriptionId = userData.subscriptionId;
+      req.user.subscriptionStatus = userData.subscriptionStatus; // Also attaching this for consistency
+
+      // Update cache
+      if (userTierCache.size >= MAX_CACHE_SIZE) {
+        userTierCache.clear(); // Simple eviction strategy: clear all if full
+      }
+      userTierCache.set(uid, {
+        tier,
+        lemonSqueezyCustomerId: userData.lemonSqueezyCustomerId,
+        subscriptionId: userData.subscriptionId,
+        subscriptionStatus: userData.subscriptionStatus,
+        timestamp: now
+      });
+
     } else {
       req.user.tier = USER_TIER.FREE;
     }
@@ -247,6 +282,16 @@ app.post("/api/webhooks/lemonsqueezy", webhookLimiter, async (req, res) => {
           },
           { merge: true },
         );
+
+      // Update cache
+      userTierCache.set(userId, {
+        tier: USER_TIER.PLUS,
+        subscriptionStatus: SUBSCRIPTION_STATUS.ACTIVE,
+        lemonSqueezyCustomerId: attributes.customer_id,
+        subscriptionId: data.id,
+        timestamp: Date.now()
+      });
+
     } else if (eventName === "order_created") {
       // Handle One-Time Payments (OTP) for Elite Tier
       const userId = meta?.custom_data?.user_id || null;
@@ -274,6 +319,13 @@ app.post("/api/webhooks/lemonsqueezy", webhookLimiter, async (req, res) => {
               // Since it's lifetime, maybe we just rely on tier === ELITE.
               lemonSqueezyCustomerId: attributes.customer_id,
           }, { merge: true });
+
+          // Update cache
+          userTierCache.set(userId, {
+            tier: USER_TIER.ELITE,
+            lemonSqueezyCustomerId: attributes.customer_id,
+            timestamp: Date.now()
+          });
       }
     } else if (eventName === "subscription_updated") {
         const attributes = data.attributes;
@@ -307,6 +359,15 @@ app.post("/api/webhooks/lemonsqueezy", webhookLimiter, async (req, res) => {
                 subscriptionStatus: status,
                 tier: tier,
             });
+
+            // Update cache (we need userId, which is doc.id)
+            userTierCache.set(doc.id, {
+                tier,
+                subscriptionStatus: status,
+                lemonSqueezyCustomerId: doc.data().lemonSqueezyCustomerId, // Might be stale but usually okay
+                subscriptionId: subscriptionId,
+                timestamp: Date.now()
+            });
         }
 
     } else if (eventName === "subscription_cancelled" || eventName === "subscription_expired") {
@@ -322,6 +383,15 @@ app.post("/api/webhooks/lemonsqueezy", webhookLimiter, async (req, res) => {
              await doc.ref.update({
                  tier: USER_TIER.FREE,
                  subscriptionStatus: SUBSCRIPTION_STATUS.INACTIVE,
+             });
+
+             // Update cache
+             userTierCache.set(doc.id, {
+                tier: USER_TIER.FREE,
+                subscriptionStatus: SUBSCRIPTION_STATUS.INACTIVE,
+                lemonSqueezyCustomerId: doc.data().lemonSqueezyCustomerId,
+                subscriptionId: subscriptionId,
+                timestamp: Date.now()
              });
         }
     }
