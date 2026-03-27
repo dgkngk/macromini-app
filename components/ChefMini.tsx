@@ -14,7 +14,9 @@ interface ChefMiniProps {
   lang: Language;
 }
 
-export const ChefMini: React.FC<ChefMiniProps> = ({ plan, remainingMacros, onAdd, onSave, onAddToShoppingList, dateStr, lang }) => {
+// Optimization: Memoized to prevent re-renders when parent state changes (e.g. typing in inputs)
+// This is effective because handlers in App.tsx are now stable via useCallback
+export const ChefMini: React.FC<ChefMiniProps> = React.memo(({ plan, remainingMacros, onAdd, onSave, onAddToShoppingList, dateStr, lang }) => {
   const [sliderValue, setSliderValue] = useState(50); // percentage
   const [userPrompt, setUserPrompt] = useState('');
   const [loading, setLoading] = useState(false);
@@ -292,4 +294,4 @@ export const ChefMini: React.FC<ChefMiniProps> = ({ plan, remainingMacros, onAdd
       )}
     </div>
   );
-};
+});
