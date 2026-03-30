@@ -14,7 +14,8 @@ interface ChefMiniProps {
   lang: Language;
 }
 
-export const ChefMini: React.FC<ChefMiniProps> = ({ plan, remainingMacros, onAdd, onSave, onAddToShoppingList, dateStr, lang }) => {
+// ⚡ Bolt: Wrapped in React.memo to prevent re-renders on parent state changes
+export const ChefMini: React.NamedExoticComponent<ChefMiniProps> = React.memo(({ plan, remainingMacros, onAdd, onSave, onAddToShoppingList, dateStr, lang }) => {
   const [sliderValue, setSliderValue] = useState(50); // percentage
   const [userPrompt, setUserPrompt] = useState('');
   const [loading, setLoading] = useState(false);
@@ -292,4 +293,4 @@ export const ChefMini: React.FC<ChefMiniProps> = ({ plan, remainingMacros, onAdd
       )}
     </div>
   );
-};
+});
