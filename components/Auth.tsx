@@ -27,6 +27,10 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, lang, setLang }) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const nameId = React.useId();
+  const emailId = React.useId();
+  const passwordId = React.useId();
+
   const t = TRANSLATIONS[lang];
   const flagMapping: { [key in Language]: string } = {
     en: "🇺🇸",
@@ -159,12 +163,16 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, lang, setLang }) => {
           <form onSubmit={handleAuth} className="space-y-4">
             {isRegistering && (
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                <label
+                  htmlFor={nameId}
+                  className="text-sm font-semibold text-slate-600 dark:text-slate-400"
+                >
                   {t.name_label}
                 </label>
                 <div className="relative">
                   <UserIcon className="absolute left-4 top-3.5 text-slate-400 w-5 h-5" />
                   <input
+                    id={nameId}
                     type="text"
                     required
                     value={name}
@@ -178,12 +186,16 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, lang, setLang }) => {
             )}
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+              <label
+                htmlFor={emailId}
+                className="text-sm font-semibold text-slate-600 dark:text-slate-400"
+              >
                 {t.email_label}
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-3.5 text-slate-400 w-5 h-5" />
                 <input
+                  id={emailId}
                   type="email"
                   required
                   value={email}
@@ -196,12 +208,16 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, lang, setLang }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+              <label
+                htmlFor={passwordId}
+                className="text-sm font-semibold text-slate-600 dark:text-slate-400"
+              >
                 {t.password_label}
               </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-3.5 text-slate-400 w-5 h-5" />
                 <input
+                  id={passwordId}
                   type="password"
                   required
                   value={password}
