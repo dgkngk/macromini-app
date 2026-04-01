@@ -23,7 +23,32 @@ const PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1); // Trust proxy for rate limiter
 
 app.use(helmet());
-app.use(cors());
+
+// 🛡️ Sentinel Security: Strict CORS Configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim())
+  : [];
+
+if (allowedOrigins.length > 0) {
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
+    }),
+  );
+} else {
+  console.warn(
+    "⚠️ Security Warning: ALLOWED_ORIGINS not set. CORS is permissive.",
+  );
+  app.use(cors());
+}
 
 // Capture raw body for Lemon Squeezy webhook signature verification
 app.use(
