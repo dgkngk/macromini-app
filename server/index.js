@@ -23,7 +23,19 @@ const PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1); // Trust proxy for rate limiter
 
 app.use(helmet());
-app.use(cors());
+
+// 🛡️ Sentinel Security: Strict CORS Policy
+// Allows defining a whitelist of allowed origins via environment variable.
+// If valid origins are provided, access is restricted. Otherwise, it defaults to allowing all (permissive).
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim())
+  : [];
+
+app.use(
+  cors({
+    origin: allowedOrigins.length > 0 ? allowedOrigins : "*",
+  }),
+);
 
 // Capture raw body for Lemon Squeezy webhook signature verification
 app.use(
